@@ -94,6 +94,8 @@ L'application tourne sur http://localhost:3000.
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clé publique Supabase (`sb_publishable_...`) |
 | `OPENROUTER_API_KEY` | Clé API OpenRouter (serveur uniquement) |
 | `OPENROUTER_MODEL` | Identifiant du modèle, par exemple un modèle `:free` |
+| `GOOGLE_CLIENT_ID` | ID client OAuth Google (login + Google Calendar) |
+| `GOOGLE_CLIENT_SECRET` | Secret du client OAuth Google (serveur uniquement) |
 
 ### Supabase en local (optionnel)
 

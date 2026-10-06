@@ -1,9 +1,20 @@
 import { redirect } from "next/navigation"
+import { z } from "zod"
 
 import type { Tables } from "./database.types"
 import { createClient } from "./server"
 
 export type Profile = Tables<"profiles">
+
+// Scopes demandés à Google au login, en plus de l'identité (openid, email, profile).
+export const GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar.events"
+
+// Chemin interne vers lequel revenir après le login. Refuse les URL externes
+// ("//site" ou "/\site") pour éviter une redirection ouverte.
+export const nextPathSchema = z
+  .string()
+  .regex(/^\/(?![/\\])/)
+  .catch("/posts")
 
 // Profil de l'utilisateur connecté, ou null s'il n'est pas connecté.
 export async function getCurrentProfile(): Promise<Profile | null> {
