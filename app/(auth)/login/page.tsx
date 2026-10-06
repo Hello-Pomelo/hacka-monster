@@ -1,5 +1,5 @@
+import Image from "next/image"
 import { redirect } from "next/navigation"
-import { Sparkles } from "lucide-react"
 
 import {
   Card,
@@ -23,10 +23,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <main className="flex flex-1 items-center justify-center bg-muted p-4">
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center gap-3">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Sparkles className="size-6" />
-          </div>
-          <CardTitle className="text-2xl">Hacka Monster</CardTitle>
+          <Image
+            src="/logo-community-monster.png"
+            alt=""
+            width={440}
+            height={147}
+            priority
+            className="mx-auto h-auto w-56"
+          />
+          <CardTitle className="sr-only">Community Monster</CardTitle>
           <CardDescription>
             Connectez-vous avec votre compte Google Hello Pomelo. L&apos;accès à
             votre agenda servira à y placer les dates de diffusion de vos posts.

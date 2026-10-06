@@ -120,16 +120,17 @@
   --chart-4: #949492;
   --chart-5: #3d7a00;
   --radius: 4px;
-  --sidebar: #111821;
-  --sidebar-foreground: #ffffff;
+  /* Barre latérale claire : le logo Community Monster n'est pas lisible sur fond bleu nuit. */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111821;
   --sidebar-primary: #d9306b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ffffff1a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #ffffff1a;
+  --sidebar-accent: #1118210d;
+  --sidebar-accent-foreground: #111821;
+  --sidebar-border: #cdcdcd;
   --sidebar-ring: #d9306b;
-  --sidebar-muted: #ffffff99;
-  --sidebar-link: #e883a6;
+  --sidebar-muted: #111821cc;
+  --sidebar-link: #d9306b;
   --highlight: #d9306b;
   --cell-off: #f8f7f6;
   --event: #111821;

@@ -1,3 +1,5 @@
+import Link from "next/link"
+import Image from "next/image"
 import { Suspense } from "react"
 
 import { AccountMenu } from "@/components/posts/account-menu"
@@ -22,14 +24,18 @@ export async function AppSidebar({ profile }: { profile: Profile }) {
   return (
     <aside
       aria-label="Navigation principale"
-      className="sticky top-0 flex h-screen flex-col gap-8 bg-sidebar px-4 py-6 text-sidebar-foreground"
+      className="sticky top-0 flex h-screen flex-col gap-8 border-r bg-sidebar px-4 py-6 text-sidebar-foreground"
     >
-      <div className="grid gap-1 px-2">
-        <span className="font-heading text-[22px] leading-none font-medium tracking-[-0.04em]">
-          hello pomelo
-        </span>
-        <span className="text-xs tracking-[0.06em] text-sidebar-muted uppercase">Posts LinkedIn</span>
-      </div>
+      <Link href="/" aria-label="Community Monster, accueil" className="block px-1">
+        <Image
+          src="/logo-community-monster.png"
+          alt="Community Monster"
+          width={440}
+          height={147}
+          priority
+          className="h-auto w-full max-w-[200px]"
+        />
+      </Link>
 
       {/* useSearchParams exige une frontière Suspense au build. */}
       <Suspense>

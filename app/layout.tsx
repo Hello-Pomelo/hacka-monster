@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hacka Monster",
+  title: "Community Monster",
   description: "Création de posts LinkedIn assistée par IA",
 };
 
