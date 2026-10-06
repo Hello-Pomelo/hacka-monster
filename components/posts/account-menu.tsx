@@ -2,7 +2,8 @@
 
 import { useTransition } from "react"
 import Link from "next/link"
-import { LogOut, Settings, SlidersHorizontal } from "lucide-react"
+import { unstable_rethrow } from "next/navigation"
+import { LogOut, Settings, SlidersHorizontal, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
 import { signOut } from "@/app/(app)/account-actions"
@@ -14,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ACCOUNT_HREF } from "@/lib/calendar"
 
 // Le nom peut être un e-mail : les initiales viennent alors de la partie locale.
 function getInitials(name: string): string {
@@ -31,7 +33,9 @@ export function AccountMenu({ name }: { name: string }) {
     startTransition(async () => {
       try {
         await signOut()
-      } catch {
+      } catch (error) {
+        // La redirection vers /login rejette la promesse de l'action : ce n'est pas un échec.
+        unstable_rethrow(error)
         toast.error("La déconnexion a échoué. Réessayez dans un instant.")
       }
     })
@@ -58,6 +62,10 @@ export function AccountMenu({ name }: { name: string }) {
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="min-w-56 shadow-float">
+        <DropdownMenuItem render={<Link href={ACCOUNT_HREF} />}>
+          <UserRound aria-hidden="true" />
+          Paramètres du compte
+        </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/parametrage" />}>
           <SlidersHorizontal aria-hidden="true" />
           Paramétrage rédaction

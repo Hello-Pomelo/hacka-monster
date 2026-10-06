@@ -1,39 +1,30 @@
-import { Plus, Sparkles, X } from "lucide-react"
-import Link from "next/link"
-
+import { CalendarDayView } from "@/components/posts/calendar-day-view"
+import { HomeScrollTarget } from "@/components/posts/home-scroll-target"
+import { HomeTabs } from "@/components/posts/home-tabs"
 import { IdeasBox, type Idea } from "@/components/posts/ideas-box"
-import { NewPostButton } from "@/components/posts/new-post-button"
-import { PostCard, postInstant } from "@/components/posts/post-card"
 import { SuggestionCard } from "@/components/posts/suggestion-card"
 import { UpcomingList } from "@/components/posts/upcoming-list"
-import { buttonVariants } from "@/components/ui/button"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader } from "@/components/ui/empty"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Post } from "@/lib/posts"
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty"
+import { homeHref, type CalendarPost, type HomeTab, type HomeView } from "@/lib/calendar"
 import type { Tables } from "@/lib/supabase/database.types"
-import { formatDayLong, parisDay, type Suggestion } from "@/lib/suggestions"
+import type { Suggestion } from "@/lib/suggestions"
 
 type HomePanelProps = {
-  posts: Post[]
+  posts: CalendarPost[]
   suggestions: Suggestion[]
   ideas: Idea[]
-  selectedDay: string | null
-  tab: "suggestions" | "a-venir" | "idees"
+  view: HomeView
   lines: Pick<Tables<"editorial_lines">, "id" | "code" | "name">[]
   today: string
 }
 
-const TRIGGER_CLASS =
-  "group/tab h-full flex-none px-1 text-muted-foreground after:bg-primary group-data-horizontal/tabs:after:bottom-[-1px]"
-
 const CARD_GRID = "grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] items-start gap-3"
 
-function Count({ value }: { value: number }) {
-  return (
-    <span className="inline-grid h-5 min-w-5 place-items-center rounded-full bg-chip px-1.5 text-xs text-chip-foreground tabular-nums group-data-active/tab:bg-primary group-data-active/tab:text-primary-foreground">
-      {value}
-    </span>
-  )
+// Fermer la vue jour rouvre l'onglet porté par l'URL.
+const CLOSE_LABELS: Record<HomeTab, string> = {
+  suggestions: "Revenir aux suggestions",
+  "a-venir": "Revenir aux posts à venir",
+  idees: "Revenir aux idées",
 }
 
 function SuggestionGrid({
@@ -56,118 +47,55 @@ function SuggestionGrid({
   )
 }
 
-// Bloc sous le calendrier (spec Mon calendrier, 3.5) : vue du jour sélectionné, sinon onglets.
-export function HomePanel({ posts, suggestions, ideas, selectedDay, tab, lines, today }: HomePanelProps) {
+const byInstant = (a: CalendarPost, b: CalendarPost) => a.at - b.at
+
+// Bloc sous le calendrier (spec Mon calendrier 3.5) : vue du jour sélectionné, sinon onglets.
+// Les posts portent le jour de la grille (`CalendarPost.day`) : vue jour et calendrier concordent.
+export function HomePanel({ posts, suggestions, ideas, view, lines, today }: HomePanelProps) {
   const lineNameById = new Map(lines.map((line) => [line.id, line.name]))
   const lineNameByCode = new Map(lines.map((line) => [line.code, line.name]))
-  const lineName = (post: Post) =>
-    post.editorial_line_id ? (lineNameById.get(post.editorial_line_id) ?? null) : null
+  const revealOnArrival = view.tab === "idees"
 
-  if (selectedDay) {
-    const dayPosts = posts
-      .filter((post) => parisDay(postInstant(post)) === selectedDay)
-      .sort((a, b) => postInstant(a).localeCompare(postInstant(b)))
-    const daySuggestions = suggestions.filter((suggestion) => suggestion.date === selectedDay)
-    const isPast = selectedDay < today
-    const createButton = (
-      <NewPostButton prefill={{ date: selectedDay }} variant="secondary" size="sm">
-        <Plus aria-hidden />
-        Créer un post ce jour
-      </NewPostButton>
-    )
-
+  if (view.day) {
+    const day = view.day
     return (
-      <section aria-labelledby="day-title" className="grid min-w-0 gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 id="day-title" className="text-[22px] first-letter:uppercase">
-            {formatDayLong(selectedDay)}
-          </h2>
-          <Link
-            href="/"
-            scroll={false}
-            aria-label="Fermer le jour sélectionné"
-            className={buttonVariants({ variant: "ghost", size: "icon" })}
-          >
-            <X aria-hidden />
-          </Link>
-        </div>
-
-        {dayPosts.length > 0 ? (
-          <div className={CARD_GRID}>
-            {dayPosts.map((post) => (
-              <PostCard key={post.id} post={post} lineName={lineName(post)} />
-            ))}
-          </div>
-        ) : (
-          <Empty className="items-start rounded-xl bg-card px-4 py-6 text-left">
-            <EmptyHeader className="items-start">
-              <EmptyDescription>
-                {isPast ? "Aucune publication ce jour-là." : "Rien de prévu ce jour."}
-              </EmptyDescription>
-            </EmptyHeader>
-            {!isPast && daySuggestions.length === 0 && (
-              <EmptyContent className="items-start">{createButton}</EmptyContent>
-            )}
-          </Empty>
-        )}
-
-        {daySuggestions.length > 0 && (
-          <SuggestionGrid suggestions={daySuggestions} lineNameByCode={lineNameByCode} />
-        )}
-        {!isPast && (dayPosts.length > 0 || daySuggestions.length > 0) && <div>{createButton}</div>}
-      </section>
+      <HomeScrollTarget day={day} revealOnArrival={revealOnArrival}>
+        <CalendarDayView
+          day={day}
+          posts={posts.filter((post) => post.day === day).sort(byInstant)}
+          suggestions={suggestions.filter((suggestion) => suggestion.date === day)}
+          lineNameById={lineNameById}
+          lineNameByCode={lineNameByCode}
+          today={today}
+          closeHref={homeHref(view, { day: null })}
+          closeLabel={CLOSE_LABELS[view.tab]}
+        />
+      </HomeScrollTarget>
     )
   }
 
   const upcoming = posts
-    .filter((post) => post.status !== "published" && post.status !== "archived")
-    .filter((post) => parisDay(postInstant(post)) >= today)
-    .sort((a, b) => postInstant(a).localeCompare(postInstant(b)))
+    .filter((post) => post.status !== "published" && post.status !== "archived" && post.day >= today)
+    .sort(byInstant)
 
   return (
-    <section aria-label="Suggestions, posts à venir et idées" className="min-w-0">
-      <Tabs defaultValue={tab} className="gap-4">
-        <TabsList
-          variant="line"
-          className="w-full justify-start gap-3 rounded-none border-b p-0 group-data-horizontal/tabs:h-10"
-        >
-          <TabsTrigger value="suggestions" className={TRIGGER_CLASS}>
-            <Sparkles aria-hidden />
-            Suggestions
-            <Count value={suggestions.length} />
-          </TabsTrigger>
-          <TabsTrigger value="a-venir" className={TRIGGER_CLASS}>
-            À venir
-            <Count value={upcoming.length} />
-          </TabsTrigger>
-          <TabsTrigger value="idees" className={TRIGGER_CLASS}>
-            Idées
-            <Count value={ideas.length} />
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="suggestions">
-          {suggestions.length > 0 ? (
+    <HomeScrollTarget day={null} revealOnArrival={revealOnArrival}>
+      <HomeTabs
+        counts={{ suggestions: suggestions.length, "a-venir": upcoming.length, idees: ideas.length }}
+        suggestions={
+          suggestions.length > 0 ? (
             <SuggestionGrid suggestions={suggestions} lineNameByCode={lineNameByCode} />
           ) : (
             <Empty className="rounded-xl bg-card">
               <EmptyHeader>
-                <EmptyDescription>
-                  Aucune suggestion : votre rythme de publication est tenu.
-                </EmptyDescription>
+                <EmptyDescription>Aucune suggestion : votre rythme de publication est tenu.</EmptyDescription>
               </EmptyHeader>
             </Empty>
-          )}
-        </TabsContent>
-
-        <TabsContent value="a-venir">
-          <UpcomingList posts={upcoming} lineNames={lineNameById} />
-        </TabsContent>
-
-        <TabsContent value="idees">
-          <IdeasBox ideas={ideas} />
-        </TabsContent>
-      </Tabs>
-    </section>
+          )
+        }
+        upcoming={<UpcomingList posts={upcoming} lineNames={lineNameById} view={view} />}
+        ideas={<IdeasBox ideas={ideas} />}
+      />
+    </HomeScrollTarget>
   )
 }

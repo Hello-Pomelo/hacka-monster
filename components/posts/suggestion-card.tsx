@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarDays, PencilLine, X } from "lucide-react"
+import { CalendarDays, History, PencilLine, Users, X, type LucideIcon } from "lucide-react"
 import { useTransition } from "react"
 import { toast } from "sonner"
 
@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { formatDayLong, REASON_LABELS, type Suggestion } from "@/lib/suggestions"
 
+const REASON_ICONS: Record<Suggestion["reason"], LucideIcon> = {
+  rhythm: History,
+  team: Users,
+}
+
 type SuggestionCardProps = {
   suggestion: Suggestion
   lineName: string
@@ -18,31 +23,45 @@ type SuggestionCardProps = {
 
 export function SuggestionCard({ suggestion, lineName }: SuggestionCardProps) {
   const [pending, startTransition] = useTransition()
+  const ReasonIcon = REASON_ICONS[suggestion.reason]
 
   // Appelée depuis le toast, après le démontage de la carte : pas de transition locale.
+  // Une action serveur rejetée (réseau, nouveau déploiement) donne un toast, pas l'écran d'erreur.
   async function restore() {
-    const result = await restoreSuggestion(suggestion.key)
-    if (!result.ok) toast.error(result.error)
+    try {
+      const result = await restoreSuggestion(suggestion.key)
+      if (!result.ok) toast.error(result.error)
+    } catch {
+      toast.error("La suggestion n'a pas pu être rétablie. Réessayez dans un instant.")
+    }
   }
 
   function dismiss() {
     startTransition(async () => {
-      const result = await dismissSuggestion(suggestion.key)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await dismissSuggestion(suggestion.key)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        toast("Suggestion ignorée.", {
+          duration: 5000,
+          action: { label: "Annuler", onClick: restore },
+        })
+      } catch {
+        toast.error("La suggestion n'a pas pu être ignorée. Réessayez dans un instant.")
       }
-      toast("Suggestion ignorée.", {
-        duration: 5000,
-        action: { label: "Annuler", onClick: restore },
-      })
     })
   }
 
   return (
     <Card className="gap-2.5 px-4 py-4 ring-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Badge variant="secondary" className="bg-tag text-tag-foreground border-tag-border">
+        <Badge
+          variant="secondary"
+          className="h-[22px] bg-tag text-[11px] tracking-[0.05em] text-tag-foreground uppercase [&_svg]:size-3"
+        >
+          <ReasonIcon aria-hidden />
           {REASON_LABELS[suggestion.reason]}
         </Badge>
         <span className="flex items-center gap-1.5 text-xs text-subtle-foreground first-letter:uppercase">

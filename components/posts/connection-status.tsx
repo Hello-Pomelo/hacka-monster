@@ -1,9 +1,11 @@
 import Link from "next/link"
 
+import { SETTINGS_CONNECTION_HREF } from "@/lib/calendar"
 import { createClient } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
-type LinkedInState = { label: string; tone: "ok" | "warn" | "off" }
+// `detail` : seconde ligne, sous le libellé (action ou date d'expiration).
+type LinkedInState = { label: string; detail: string | null; tone: "ok" | "warn" | "off" }
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   day: "2-digit",
@@ -14,26 +16,30 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
 // Délai sous lequel l'expiration de la connexion est signalée.
 const EXPIRY_WARNING_MS = 7 * 24 * 60 * 60 * 1000
 
+// Connexion unique de la page (contrat 4) : colonnes listées, jamais le jeton chiffré.
 async function getLinkedInState(): Promise<LinkedInState> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("linkedin_connection")
-    .select("mode, target_name, expires_at, last_import_at")
-    .limit(1)
+    .select("mode, target_name, expires_at")
+    .eq("id", 1)
     .maybeSingle()
 
-  if (error) return { label: "LinkedIn : état indisponible", tone: "off" }
-  if (!data) return { label: "Page LinkedIn non connectée", tone: "off" }
-  if (data.mode === "demo") return { label: `${data.target_name} : mode démo`, tone: "warn" }
-  if (!data.expires_at) return { label: `${data.target_name} connectée`, tone: "ok" }
+  if (error) return { label: "LinkedIn : état indisponible", detail: null, tone: "off" }
+  if (!data) return { label: "Page LinkedIn non connectée", detail: "Connecter la page", tone: "off" }
+  if (data.mode === "demo") return { label: `${data.target_name} : mode démo`, detail: null, tone: "warn" }
+
+  const label = `${data.target_name} connectée`
+  if (!data.expires_at) return { label, detail: null, tone: "ok" }
 
   const expiresAt = new Date(data.expires_at)
   const remaining = expiresAt.getTime() - Date.now()
-  if (remaining <= 0) return { label: `${data.target_name} : connexion expirée`, tone: "warn" }
-  if (remaining < EXPIRY_WARNING_MS) {
-    return { label: `${data.target_name} : expire le ${dateFormat.format(expiresAt)}`, tone: "warn" }
+  if (remaining <= 0) return { label: `${data.target_name} : connexion expirée`, detail: null, tone: "warn" }
+  return {
+    label,
+    detail: `Expire le ${dateFormat.format(expiresAt)}`,
+    tone: remaining < EXPIRY_WARNING_MS ? "warn" : "ok",
   }
-  return { label: `${data.target_name} connectée`, tone: "ok" }
 }
 
 const DOT_CLASS: Record<LinkedInState["tone"], string> = {
@@ -49,11 +55,18 @@ export async function ConnectionStatus() {
     <ul className="grid gap-1.5 rounded-xl bg-sidebar-accent p-3 text-xs text-sidebar-muted">
       <li>
         <Link
-          href="/parametrage?onglet=linkedin"
-          className="flex items-center gap-2 rounded-sm text-sidebar-foreground hover:text-sidebar-link focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
+          href={SETTINGS_CONNECTION_HREF}
+          className="group/connection grid gap-0.5 rounded-sm text-sidebar-foreground hover:text-sidebar-link focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
         >
-          <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", DOT_CLASS[linkedIn.tone])} />
-          <span className="truncate">{linkedIn.label}</span>
+          <span className="flex items-center gap-2">
+            <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", DOT_CLASS[linkedIn.tone])} />
+            <span className="truncate">{linkedIn.label}</span>
+          </span>
+          {linkedIn.detail && (
+            <span className="truncate pl-3.5 text-sidebar-muted group-hover/connection:text-sidebar-link">
+              {linkedIn.detail}
+            </span>
+          )}
         </Link>
       </li>
       <li className="flex items-center gap-2">
