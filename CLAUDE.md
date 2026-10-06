@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Instructions pour Claude Code et les développeurs du projet Hacka Monster. Le contexte fonctionnel, la stack et le modèle de données sont dans [README.md](README.md).
+Instructions pour Claude Code et les développeurs du projet Hacka Monster. Le contexte fonctionnel, la stack et le modèle de données sont dans [README.md](README.md). Le besoin fait foi dans [docs/cahier-des-charges.md](docs/cahier-des-charges.md) : le lire avant toute fonctionnalité et citer la référence (F1 à F7) concernée.
 
 ## Projet
 
