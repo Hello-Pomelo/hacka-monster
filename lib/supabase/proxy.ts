@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import type { Database } from "./database.types"
 
 // Pages réservées aux utilisateurs connectés.
-const PROTECTED_PATHS = ["/posts", "/review"]
+const PROTECTED_PATHS = ["/posts", "/review", "/stats"]
 
 // Rafraîchit la session Supabase à chaque requête et redirige vers /login
 // les visiteurs non connectés qui demandent une page protégée.
@@ -39,9 +39,11 @@ export async function updateSession(request: NextRequest) {
   const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path))
 
   if (!data?.claims && isProtected) {
+    // Retour après connexion avec les paramètres de l'URL (filtres d'un lien partagé).
     const url = request.nextUrl.clone()
     url.pathname = "/login"
-    url.searchParams.set("next", pathname)
+    url.search = ""
+    url.searchParams.set("next", `${pathname}${request.nextUrl.search}`)
     return NextResponse.redirect(url)
   }
 

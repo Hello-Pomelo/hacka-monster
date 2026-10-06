@@ -2,11 +2,18 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { CalendarDays, Files, Lightbulb, SlidersHorizontal, type LucideIcon } from "lucide-react"
+import {
+  CalendarDays,
+  ChartColumn,
+  Files,
+  Lightbulb,
+  SlidersHorizontal,
+  type LucideIcon,
+} from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-type NavKey = "calendar" | "ideas" | "posts" | "settings"
+type NavKey = "calendar" | "ideas" | "posts" | "stats" | "settings"
 
 type NavItem = {
   key: NavKey
@@ -15,17 +22,19 @@ type NavItem = {
   href: string
 }
 
-// Posts à valider (P1), Mes préférences (P2) et Statistiques sont masqués en v1.
+// Posts à valider (P1) et Mes préférences (P2) sont masqués en v1.
 const NAV_ITEMS: NavItem[] = [
   { key: "calendar", label: "Mon calendrier", icon: CalendarDays, href: "/" },
   { key: "ideas", label: "Boîte à idées", icon: Lightbulb, href: "/?onglet=idees" },
   { key: "posts", label: "Tous les posts", icon: Files, href: "/posts" },
+  { key: "stats", label: "Statistiques", icon: ChartColumn, href: "/stats" },
   { key: "settings", label: "Paramétrage rédaction", icon: SlidersHorizontal, href: "/parametrage" },
 ]
 
 function activeKey(pathname: string, tab: string | null): NavKey | null {
   if (pathname === "/") return tab === "idees" ? "ideas" : "calendar"
   if (pathname.startsWith("/posts")) return "posts"
+  if (pathname.startsWith("/stats")) return "stats"
   if (pathname.startsWith("/parametrage")) return "settings"
   return null
 }

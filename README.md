@@ -34,6 +34,7 @@ Hors MVP : la publication réelle sur LinkedIn (l'API demande une validation d'a
 |---|---|---|
 | Framework | [Next.js](https://nextjs.org) (App Router) + TypeScript | Front et back dans un seul projet, Server Actions et Route Handlers |
 | UI | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) | Formulaire multi-étapes, éditeur, badges de statut, calendrier |
+| Graphiques | [shadcn/ui Chart](https://ui.shadcn.com/docs/components/chart) (Recharts) | Écran Statistiques |
 | Base de données et auth | [Supabase](https://supabase.com) (Postgres, Auth, RLS) | Comptes, rôles auteur / relecteur, posts, historique |
 | IA (SDK) | [Vercel AI SDK](https://ai-sdk.dev) (`ai`) | Appels LLM et streaming de la génération |
 | IA (modèles) | [OpenRouter](https://openrouter.ai) via `@openrouter/ai-sdk-provider` | Accès aux modèles, dont des modèles gratuits (`:free`) |
@@ -69,12 +70,44 @@ Schéma des specs (`docs/specs`), défini par les migrations `supabase/migration
 | `ideas`, `dismissed_suggestions` | Boîte à idées partagée (D28), suggestions ignorées |
 | `post_transitions` | Transitions de statut autorisées, par acteur (`author` \| `system`) |
 | `editorial_line` | Ancienne ligne unique, encore lue par `/api/generate` ; à supprimer quand plus rien ne la lit |
+| `post_metrics` | Relevé LinkedIn quotidien d'un post publié : `post_id`, `captured_on`, `impressions`, `members_reached`, `reactions`, `comments`, `reposts`, `clicks` |
 
 Statuts d'un post (spec Création de post) : `draft`, `scheduled`, `publishing`, `published`, `failed`, `archived` ; `pending` (En relecture) est prévu pour P1, ses transitions sont désactivées.
 
 Transitions : le trigger `posts_check_update` refuse toute transition absente de `post_transitions`. Un appel depuis l'API (rôle `authenticated`) est une action d'auteur ; les passages `scheduled` → `publishing` → `published` ou `failed` sont faits par les fonctions `cron_claim_due_posts` et `cron_complete_post`, protégées par le secret `cron_secret` du Vault. Le trigger refuse aussi de programmer un texte vide ou une date passée, et toute modification du texte, de la date ou de l'image d'un post En cours, Publié ou Archivé.
 
 Images : bucket public `post-images` (JPEG, PNG, GIF, 5 Mo).
+
+## Statistiques (`/stats`)
+
+L'écran montre les performances LinkedIn des posts publiés sur une période glissante (30 jours, 90 jours ou 12 mois), filtrable par ligne éditoriale comme le calendrier. Comme les posts (D27), les statistiques sont visibles par tous les admins.
+
+- **Chiffres clés :** impressions, taux d'interaction, interactions et posts publiés, comparés à la période précédente de même durée.
+- **Graphiques :** impressions par post, taux d'interaction par type de post (avec sa vue tableau).
+- **Tableau :** détail par post, triable.
+
+Un post compte s'il est Publié (`published`), à sa date de publication : `published_at`, sinon `scheduled_at`. Il compte avec son **dernier relevé**, c'est-à-dire ses totaux depuis la publication.
+
+**Taux d'interaction** = (réactions + commentaires + republications) / impressions. Les clics en sont exclus : LinkedIn ne les fournit que pour une page entreprise, et le taux doit rester comparable quand les comptes perso arriveront (P2).
+
+### Alimenter les statistiques (synchro LinkedIn)
+
+LinkedIn ne renvoie que les totaux d'un post à l'instant T, sans historique par post. La synchro enregistre donc un relevé par jour avec `savePostMetrics()` (`lib/stats/save.ts`). La fonction s'appelle côté serveur avec la session d'un admin et fait un upsert sur (`post_id`, `captured_on`). Le RLS n'accepte qu'un post Publié et un jour de relevé qui n'est pas dans le futur (heure de Paris). Aucun relevé ne se supprime depuis l'API.
+
+| Colonne | Page entreprise (`organizationalEntityShareStatistics`) | Compte perso, P2 (`memberCreatorPostAnalytics`) |
+|---|---|---|
+| `impressions` | `impressionCount` | `IMPRESSION` |
+| `members_reached` | `uniqueImpressionsCount` (pas toujours renvoyé) | `MEMBERS_REACHED` |
+| `reactions` | `likeCount` (peut être négatif) | `REACTION` |
+| `comments` | `commentCount` | `COMMENT` |
+| `reposts` | `shareCount` | `RESHARE` |
+| `clicks` | `clickCount` | `null` (pas d'équivalent) |
+
+Ces API font partie de la Community Management API de LinkedIn. Elles demandent un accès validé par LinkedIn (`rw_organization_admin` pour les statistiques de la page), et les statistiques d'un compte perso ne sont lisibles qu'avec le jeton de son propriétaire.
+
+### Données de démo
+
+`supabase/demo-stats.sql` ajoute des relevés fictifs aux posts publiés qui n'en ont pas encore, sans écraser un vrai relevé. Son premier bloc peut aussi créer 16 posts publiés de démo pour un compte : renseigner `demo_email` avant de l'exécuter. Le script s'exécute à la main, dans le SQL Editor de Supabase ou avec `psql`.
 
 ## Démarrage
 

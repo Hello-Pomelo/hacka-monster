@@ -282,6 +282,53 @@ export type Database = {
           },
         ]
       }
+      post_metrics: {
+        Row: {
+          captured_on: string
+          clicks: number | null
+          comments: number
+          created_at: string
+          impressions: number
+          members_reached: number | null
+          post_id: string
+          reactions: number
+          reposts: number
+          updated_at: string
+        }
+        Insert: {
+          captured_on?: string
+          clicks?: number | null
+          comments?: number
+          created_at?: string
+          impressions?: number
+          members_reached?: number | null
+          post_id: string
+          reactions?: number
+          reposts?: number
+          updated_at?: string
+        }
+        Update: {
+          captured_on?: string
+          clicks?: number | null
+          comments?: number
+          created_at?: string
+          impressions?: number
+          members_reached?: number | null
+          post_id?: string
+          reactions?: number
+          reposts?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_metrics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_transitions: {
         Row: {
           actor: string
