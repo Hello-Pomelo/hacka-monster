@@ -57,6 +57,15 @@
   --color-tag: var(--tag);
   --color-tag-foreground: var(--tag-foreground);
   --color-tag-border: var(--tag-border);
+  --color-highlight: var(--highlight);
+  --color-cell-off: var(--cell-off);
+  --color-event: var(--event);
+  --color-event-hover: var(--event-hover);
+  --color-event-foreground: var(--event-foreground);
+  --color-event-muted: var(--event-muted);
+  --color-event-pending: var(--event-pending);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-link: var(--sidebar-link);
   --shadow-float: 0 8px 24px #11182129, 0 2px 6px #1118211a;
 
   /* Rayons : 4 px pour les contrôles (rounded-lg) et les badges (rounded-4xl),
@@ -119,6 +128,15 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #ffffff1a;
   --sidebar-ring: #d9306b;
+  --sidebar-muted: #ffffff99;
+  --sidebar-link: #e883a6;
+  --highlight: #d9306b;
+  --cell-off: #f8f7f6;
+  --event: #111821;
+  --event-hover: #29303a;
+  --event-foreground: #ffffff;
+  --event-muted: #ffffff99;
+  --event-pending: #ffcc60;
 }
 
 @layer base {
