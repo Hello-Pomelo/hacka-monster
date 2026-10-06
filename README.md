@@ -107,7 +107,9 @@ Ces API font partie de la Community Management API de LinkedIn. Elles demandent 
 
 ### Données de démo
 
-`supabase/demo-stats.sql` ajoute des relevés fictifs aux posts publiés qui n'en ont pas encore, sans écraser un vrai relevé. Son premier bloc peut aussi créer 16 posts publiés de démo pour un compte : renseigner `demo_email` avant de l'exécuter. Le script s'exécute à la main, dans le SQL Editor de Supabase ou avec `psql`.
+`supabase/demo-stats.sql` crée 16 posts publiés de démo, répartis entre tous les comptes et marqués `params.demo = true`, puis ajoute des relevés fictifs aux posts publiés qui n'en ont pas encore, sans écraser un vrai relevé. Le script s'exécute à la main, dans le SQL Editor de Supabase ou avec `psql`.
+
+La démo est en place sur le projet partagé depuis le 6 octobre 2026. Pour la retirer : `delete from public.posts where params ->> 'demo' = 'true';` (les relevés partent en cascade).
 
 ## Démarrage
 
