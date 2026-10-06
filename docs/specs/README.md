@@ -1,12 +1,13 @@
 # Specs
 
-Trois specs, une par périmètre, à développer en parallèle. Chacune est autonome et se termine par une section « Alignement avec les autres specs » : ce qu'elle lit des autres et ce qu'elle leur fournit.
+Quatre specs, une par périmètre, à développer en parallèle. Chacune est autonome et se termine par une section « Alignement avec les autres specs » : ce qu'elle lit des autres et ce qu'elle leur fournit.
 
 | Spec | Couvre | Écrans |
 |---|---|---|
 | [Paramétrage rédaction](spec-parametrage-redaction.md) | Onboarding, connexion LinkedIn et import des posts, charte, lignes éditoriales, gabarits, assemblage du prompt, garde-fous | E0 à E3 (E3 en P2) |
 | [Création d'un post LinkedIn](spec-creation-post-linkedin.md) | Nouveau post, série générée, édition, aperçu, statuts, programmation, publication, liste des posts | E1 à E7 |
 | [Écran Mon calendrier](spec-ecran-mon-calendrier.md) | Écran d'accueil : navigation, indicateurs de rythme, calendrier, suggestions, boîte à idées | Un seul écran |
+| [Créneaux conseillés à la planification](spec-creneaux-conseilles-planification.md) | Jour, heure et date de début préremplis selon le type de post, raison affichée, heure de Paris | Création de post, E2 (E3 et mode manuel en P1) |
 
 Les numéros d'écran sont propres à chaque spec : écrire « Création de post, E3 » plutôt que « E3 ».
 
