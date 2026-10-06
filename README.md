@@ -117,6 +117,7 @@ Toute modification de schéma passe par une migration dans `supabase/migrations`
 
 ## Conventions
 
+- **Design et UI : uniquement des composants [shadcn/ui](https://ui.shadcn.com).** Le design est réalisé avec ces composants, le code les reprend à l'identique (installation via `npx shadcn@latest add <composant>`, aucune autre librairie UI, couleurs via le thème). Règles détaillées dans [CLAUDE.md](CLAUDE.md).
 - Branches courtes par piste, merge fréquent sur `main` (déployé automatiquement).
 - Aucune donnée réelle ou sensible envoyée aux modèles gratuits : données fictives uniquement.
 - En cas de panne pendant la démo : `npm run dev` sur un portable connecté au Supabase cloud.
