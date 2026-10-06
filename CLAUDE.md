@@ -70,6 +70,8 @@ Respecte cette organisation. Si un fichier n'a pas sa place, demande avant de cr
 
 Le design est réalisé avec les composants [shadcn/ui](https://ui.shadcn.com). Le code doit le reproduire avec ces mêmes composants.
 
+- **La maquette fait foi : https://claude.ai/artifact/6rL8eHe8ej8x7a9a61Uq22**, à relire avec l'outil Artifact avant tout travail d'interface. Elle évolue dans le temps. @docs/design.md en transcrit les règles (couleurs, typographie, rayons, statuts, mise en page) à une version donnée : si la maquette a changé, mettre à jour `docs/design.md` et `app/globals.css` avant de coder.
+
 - **Toujours partir d'un composant shadcn/ui.** Consulte le catalogue (https://ui.shadcn.com/docs/components) avant de créer un élément d'interface.
 - **Installer via le CLI** (`npx shadcn@latest add`), jamais par copier-coller depuis le site.
 - **Ne pas modifier `components/ui/`** pour un besoin ponctuel : composer ou envelopper dans `components/posts/`, utiliser `className` et les variantes.
