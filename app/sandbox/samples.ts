@@ -7,7 +7,7 @@ export const SAMPLE_ANSWERS: Record<PostTypeId, Record<string, string>> = {
     people: "toute l'equipe, 25 personnes, souvent les juniors presentent",
     meaning: "on apprend des echecs, on rigole, ambiance bienveillante",
   },
-  delivered_project: {
+  project_delivered: {
     project: "refonte dashboard commercial pour un distributeur de materiel de jardin, ~40 commerciaux",
     problem: "chiffres le lundi pour la semaine d'avant, export excel a la main, plein d'erreurs",
     result: "chiffres dispo chaque matin a 7h, le controle de gestion a recupere 1 jour/semaine",
@@ -23,9 +23,15 @@ export const SAMPLE_ANSWERS: Record<PostTypeId, Record<string, string>> = {
     role: "on organise et Ines fait un talk sur les tests de donnees",
     takeaway: "retours concrets, 60 places, apero apres",
   },
-  new_hire: {
+  newcomer: {
     who: "camille, consultante data senior",
     background: "6 ans chez un retailer, a monte leur equipe BI, fan de dataviz et d'escalade",
     mission: "projets BI clients retail + ateliers internes dataviz",
+  },
+  hiring: {
+    role: "data engineer confirme, CDI a Nantes",
+    team: "equipe data de 8 personnes, projets retail et industrie",
+    profile: "3 ans d'xp, SQL solide, envie de transmettre",
+    apply: "candidature sur le site carrieres ou message a Lea",
   },
 }

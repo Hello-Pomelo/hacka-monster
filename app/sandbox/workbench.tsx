@@ -29,7 +29,7 @@ const DEFAULT_PARAMS: GenerateInput["params"] = {
 }
 
 export function Workbench() {
-  const [type, setType] = useState<PostTypeId>("delivered_project")
+  const [type, setType] = useState<PostTypeId>("project_delivered")
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [params, setParams] = useState(DEFAULT_PARAMS)
   const { text, setText, isGenerating, generate, stop } = useGeneratePost()

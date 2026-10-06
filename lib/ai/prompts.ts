@@ -19,10 +19,11 @@ const LENGTH_TARGETS: Record<Length, string> = {
 // Ordre du corps par type de post, calqué sur les piliers éditoriaux (prouver, expertiser, incarner).
 const STRUCTURES: Record<PostTypeId, string> = {
   employer_brand: "une scène concrète (un moment, des personnes), puis ce qu'elle montre de la façon de travailler ensemble",
-  delivered_project: "le problème du client, ce que l'équipe a livré, puis le résultat chiffré",
+  project_delivered: "le problème du client, ce que l'équipe a livré, puis le résultat chiffré",
   tech_feedback: "la difficulté rencontrée, ce que l'équipe a essayé ou corrigé, puis ce qu'elle en retient",
   event: "l'événement (quoi, où, quand), le rôle de l'équipe, puis pourquoi venir ou ce qu'il faut en retenir",
-  new_hire: "qui arrive et à quel poste, son parcours, puis sa mission",
+  newcomer: "qui arrive et à quel poste, son parcours, puis sa mission",
+  hiring: "le poste et l'équipe, la mission, le profil recherché, puis comment postuler",
 }
 
 // Appel à l'action proposé quand l'auteur n'en a pas saisi. Formulé au tutoiement
@@ -30,10 +31,11 @@ const STRUCTURES: Record<PostTypeId, string> = {
 // Pas de « Et vous ? » : LinkedIn rétrograde l'engagement forcé.
 const DEFAULT_CTAS: Record<PostTypeId, string> = {
   employer_brand: "une phrase de clôture sans question, ou une question sur la pratique précise décrite dans les notes",
-  delivered_project: "une phrase de clôture sans question, ou une question d'expert sur un choix cité dans les notes",
+  project_delivered: "une phrase de clôture sans question, ou une question d'expert sur un choix cité dans les notes",
   tech_feedback: "une question technique précise sur la difficulté décrite dans les notes, à laquelle un pair du métier peut répondre",
   event: "l'information pratique pour venir (date, lieu, inscription) si les notes la donnent, sinon une phrase de clôture sans question",
-  new_hire: "une phrase de bienvenue adressée à la personne, sans question",
+  newcomer: "une phrase de bienvenue adressée à la personne, sans question",
+  hiring: "l'invitation à postuler ou à partager l'offre, sans question",
 }
 
 const VOICES: Record<Enums<"post_target">, string> = {

@@ -18,7 +18,7 @@ import type { GenerateInput } from "@/lib/ai/schema"
 
 // Données fictives : elles partent vers un modèle gratuit.
 const SAMPLE: GenerateInput = {
-  type: "delivered_project",
+  type: "project_delivered",
   answers: {
     project: "refonte dashboard commercial pour un distributeur de materiel de jardin, ~40 commerciaux",
     problem:
