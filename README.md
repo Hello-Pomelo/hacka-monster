@@ -91,7 +91,7 @@ L'application tourne sur http://localhost:3000.
 | Variable | Description |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé publique Supabase |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clé publique Supabase (`sb_publishable_...`) |
 | `OPENROUTER_API_KEY` | Clé API OpenRouter (serveur uniquement) |
 | `OPENROUTER_MODEL` | Identifiant du modèle, par exemple un modèle `:free` |
 
