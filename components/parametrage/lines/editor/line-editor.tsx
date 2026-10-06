@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react"
 
 import { saveLine } from "@/app/(app)/parametrage/actions"
 import { SaveIndicator } from "@/components/parametrage/save-indicator"
-import { useAutosave } from "@/components/parametrage/use-autosave"
+import { changedFields, useAutosave } from "@/components/parametrage/use-autosave"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   MAX_REFERENCE_POSTS,
@@ -47,9 +47,12 @@ export function LineEditor(props: LineEditorProps) {
 
 function LineEditorForm({ line, importedPosts, sections, readOnly = false }: LineEditorProps) {
   const [fields, setFields] = useState<LineFields>(() => toLineFields(line))
-  const { state, flush } = useAutosave(fields, (next) => saveLine(line.id, next), {
-    enabled: !readOnly,
-  })
+  // Seuls les champs modifiés partent : plusieurs admins peuvent tenir la même ligne.
+  const { state, flush } = useAutosave(
+    fields,
+    (next, previous) => saveLine(line.id, changedFields(previous, next)),
+    { enabled: !readOnly }
+  )
   // En lecture seule, l'affichage suit la ligne du serveur à chaque rafraîchissement.
   const value = readOnly ? toLineFields(line) : fields
 

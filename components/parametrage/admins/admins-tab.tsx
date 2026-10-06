@@ -41,7 +41,7 @@ export async function AdminsTab() {
   const [profile, admins] = await Promise.all([requireProfile(), getAdmins()])
 
   return (
-    <Card className="min-w-0">
+    <Card className="min-w-0 ring-0">
       <CardHeader>
         <CardTitle>Admins</CardTitle>
         <CardDescription>

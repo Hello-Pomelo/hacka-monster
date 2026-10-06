@@ -31,12 +31,16 @@ export function TestPostPanel({ lineId, lineName }: TestPostPanelProps) {
 
   function generate() {
     startTransition(async () => {
-      const result = await generateTestPostAction(lineId)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await generateTestPostAction(lineId)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        setTestPost(result.data)
+      } catch {
+        toast.error("La génération a échoué. Vérifiez votre connexion puis réessayez.")
       }
-      setTestPost(result.data)
     })
   }
 

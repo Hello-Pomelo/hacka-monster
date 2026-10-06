@@ -19,8 +19,9 @@ type StringListInputProps = {
   "aria-describedby"?: string
 }
 
-// Liste de courts textes (valeurs, expressions interdites, alias…) : saisie, Entrée ou « Ajouter »,
-// puis pastilles retirables. Les doublons, sans tenir compte de la casse, sont ignorés.
+// Liste de courts textes (valeurs, expressions interdites, alias…) : saisie, Entrée, « Ajouter »
+// ou sortie du champ, puis pastilles retirables. Les doublons, sans tenir compte de la casse, sont
+// ignorés. La sortie du champ ajoute la saisie en cours : un envoi de formulaire ne la perd pas.
 export function StringListInput({
   id,
   value,
@@ -59,6 +60,7 @@ export function StringListInput({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleKeyDown}
+          onBlur={add}
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled || full}

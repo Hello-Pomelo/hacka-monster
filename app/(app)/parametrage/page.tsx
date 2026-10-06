@@ -8,6 +8,7 @@ import { LinesSection } from "@/components/parametrage/lines/lines-section"
 import { LinkedInConnectionSection } from "@/components/parametrage/linkedin/linkedin-connection-section"
 import { ParametrageHeader } from "@/components/parametrage/parametrage-header"
 import { ParametrageTabs } from "@/components/parametrage/parametrage-tabs"
+import { SectionErrorBoundary } from "@/components/parametrage/section-error-boundary"
 import { TabSkeleton } from "@/components/parametrage/tab-skeleton"
 import { TemplatesTab } from "@/components/parametrage/templates/templates-tab"
 import { VersionsTab } from "@/components/parametrage/versions/versions-tab"
@@ -65,9 +66,11 @@ export default async function ParametragePage({ searchParams }: ParametragePageP
     <>
       <ParametrageHeader />
       <ParametrageTabs current={tab} />
-      <Suspense key={tab} fallback={<TabSkeleton />}>
-        <TabContent tab={tab} lineCode={search.ligne} linkedinParam={search.linkedin} />
-      </Suspense>
+      <SectionErrorBoundary key={tab} title="Impossible de charger cet onglet">
+        <Suspense fallback={<TabSkeleton />}>
+          <TabContent tab={tab} lineCode={search.ligne} linkedinParam={search.linkedin} />
+        </Suspense>
+      </SectionErrorBoundary>
     </>
   )
 }

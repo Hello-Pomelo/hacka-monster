@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { ClipboardPaste, RefreshCw } from "lucide-react"
 
@@ -74,32 +75,29 @@ export async function LinkedInConnectionSection({
   const connectHref = linkedInConnectHref(returnTo)
   const demoMode = isLinkedInDemoMode()
 
+  let notice: ReactNode = null
+
   if (param === "choose") {
     const pages = await getPageChoices()
-    if (!pages) {
-      return (
-        <LinkedInNotice message="La connexion a expiré. Recommencez.">
-          <ConnectButton href={connectHref}>
-            <RefreshCw aria-hidden="true" />
-            Recommencer
-          </ConnectButton>
-        </LinkedInNotice>
-      )
+    if (pages && pages.length > 0) {
+      return <PageChoiceForm pages={pages} returnTo={returnTo} demo={demoMode} />
     }
-    if (pages.length === 0) {
-      return (
-        <ConnectionErrorNotice
-          code="no_page"
-          connectHref={connectHref}
-          manualFallbackHref={manualFallbackHref}
-        />
-      )
-    }
-    return <PageChoiceForm pages={pages} returnTo={returnTo} demo={demoMode} />
-  }
-
-  if (param) {
-    return (
+    notice = pages ? (
+      <ConnectionErrorNotice
+        code="no_page"
+        connectHref={connectHref}
+        manualFallbackHref={manualFallbackHref}
+      />
+    ) : (
+      <LinkedInNotice message="La connexion a expiré. Recommencez.">
+        <ConnectButton href={connectHref}>
+          <RefreshCw aria-hidden="true" />
+          Recommencer
+        </ConnectButton>
+      </LinkedInNotice>
+    )
+  } else if (param) {
+    notice = (
       <ConnectionErrorNotice
         code={param}
         connectHref={connectHref}
@@ -108,6 +106,10 @@ export async function LinkedInConnectionSection({
     )
   }
 
+  // Onboarding : l'erreur remplace l'étape, qui propose déjà de continuer sans connexion.
+  if (notice && variant === "onboarding") return notice
+
+  // Réglages : l'erreur s'affiche au-dessus de l'état de la connexion, qui reste consultable.
   const [connection, scheduledCount] = await Promise.all([
     getLinkedInConnection(),
     variant === "settings" ? countScheduledPosts() : Promise.resolve(0),
@@ -115,16 +117,19 @@ export async function LinkedInConnectionSection({
   const state = connectionState(connection)
 
   return (
-    <ConnectionSummary
-      connection={connection}
-      state={state}
-      variant={variant}
-      connectHref={connectHref}
-      demoMode={demoMode}
-    >
-      {variant === "settings" && (
-        <ConnectionActions state={state} connectHref={connectHref} scheduledCount={scheduledCount} />
-      )}
-    </ConnectionSummary>
+    <div className="grid gap-4">
+      {notice}
+      <ConnectionSummary
+        connection={connection}
+        state={state}
+        variant={variant}
+        connectHref={connectHref}
+        demoMode={demoMode}
+      >
+        {variant === "settings" && (
+          <ConnectionActions state={state} connectHref={connectHref} scheduledCount={scheduledCount} />
+        )}
+      </ConnectionSummary>
+    </div>
   )
 }

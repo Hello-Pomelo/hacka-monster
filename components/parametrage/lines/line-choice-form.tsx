@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, type FormEvent } from "react"
+import { useState, useTransition, type FormEvent, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -44,13 +44,17 @@ export function LineChoiceForm({ lines, currentCode, onDone, onCancel }: LineCho
       return
     }
     startTransition(async () => {
-      const result = await setMyLine(value)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await setMyLine(value)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        onDone?.()
+        router.refresh()
+      } catch {
+        toast.error("Votre ligne n'a pas pu être enregistrée. Vérifiez votre connexion puis réessayez.")
       }
-      onDone?.()
-      router.refresh()
     })
   }
 
@@ -100,14 +104,18 @@ export function LineChoiceForm({ lines, currentCode, onDone, onCancel }: LineCho
 type CurrentLineSwitchProps = {
   lines: EditorialLine[]
   current: Pick<EditorialLine, "code" | "name">
+  // Éditeur de la ligne actuelle, masqué pendant le choix.
+  children: ReactNode
 }
 
-// Rappel compact de la ligne choisie, avec « Changer » qui rouvre le choix sur place.
-export function CurrentLineSwitch({ lines, current }: CurrentLineSwitchProps) {
+// Rappel compact de la ligne choisie, avec « Changer » qui rouvre le choix à la place de l'éditeur.
+// L'éditeur est démonté à l'ouverture : sa dernière modification part vers la ligne actuelle avant
+// le changement de ligne, que le RLS refuserait ensuite.
+export function CurrentLineSwitch({ lines, current, children }: CurrentLineSwitchProps) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-6">
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         Ligne
         <Badge variant="secondary" className="bg-chip text-chip-foreground">
@@ -124,13 +132,15 @@ export function CurrentLineSwitch({ lines, current }: CurrentLineSwitchProps) {
           Changer
         </Button>
       </p>
-      {open && (
+      {open ? (
         <LineChoiceForm
           lines={lines}
           currentCode={current.code}
           onDone={() => setOpen(false)}
           onCancel={() => setOpen(false)}
         />
+      ) : (
+        children
       )}
     </div>
   )

@@ -48,7 +48,7 @@ export function AiProposalButton({
     <Button type="button" className="h-10 px-4" onClick={propose} disabled={disabled || pending}>
       {pending ? <Spinner aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
       {pending
-        ? "L'IA analyse vos posts… (30 s au plus)"
+        ? "L'IA analyse vos posts…"
         : hasProposal
           ? "Proposer à nouveau"
           : "Proposer avec l'IA"}

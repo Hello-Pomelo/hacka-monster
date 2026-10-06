@@ -54,7 +54,7 @@ export function TemplateCard({ id, template }: TemplateCardProps) {
   const defaultsId = `template-${id}-defaults`
 
   return (
-    <Card className="min-w-0">
+    <Card className="min-w-0 ring-0">
       <CardHeader>
         <CardTitle>{template.label}</CardTitle>
         <CardDescription>{template.description}</CardDescription>

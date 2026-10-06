@@ -10,6 +10,7 @@ import { StepSkeleton } from "@/components/onboarding/step-skeleton"
 import { CharterSection } from "@/components/parametrage/charter/charter-section"
 import { OnboardingIdentityStep } from "@/components/parametrage/lines/onboarding-identity-step"
 import { OnboardingTestStep } from "@/components/parametrage/lines/onboarding-test-step"
+import { SectionErrorBoundary } from "@/components/parametrage/section-error-boundary"
 import { parseOnboardingStep, type OnboardingStep } from "@/lib/parametrage/types"
 
 export const metadata: Metadata = { title: "Configurer l'outil" }
@@ -46,9 +47,11 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
     <>
       <OnboardingHeader />
       <OnboardingProgress step={step} />
-      <Suspense key={step} fallback={<StepSkeleton />}>
-        <StepBody step={step} linkedinParam={search.linkedin} />
-      </Suspense>
+      <SectionErrorBoundary key={step} title="Impossible de charger cette étape">
+        <Suspense fallback={<StepSkeleton />}>
+          <StepBody step={step} linkedinParam={search.linkedin} />
+        </Suspense>
+      </SectionErrorBoundary>
       <OnboardingFooter step={step} />
     </>
   )

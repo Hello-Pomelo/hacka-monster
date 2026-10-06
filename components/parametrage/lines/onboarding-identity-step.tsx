@@ -30,14 +30,13 @@ export async function OnboardingIdentityStep() {
   }
 
   return (
-    <div className="grid gap-6">
-      <CurrentLineSwitch lines={lines} current={myLine} />
+    <CurrentLineSwitch lines={lines} current={myLine}>
       <LineEditor
         key={myLine.id}
         line={myLine}
         importedPosts={importedPosts}
         sections={["identity", "examples", "voice", "defaults"]}
       />
-    </div>
+    </CurrentLineSwitch>
   )
 }

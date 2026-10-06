@@ -1,8 +1,8 @@
 "use client"
 
 import { CircleAlert } from "lucide-react"
-import Link from "next/link"
 
+import { SkipButton } from "@/components/onboarding/skip-button"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -19,6 +19,8 @@ type OnboardingErrorProps = {
   retry: () => void
 }
 
+// Un simple lien vers « / » ramènerait ici tant que l'onboarding n'est pas terminé (contrat 2) :
+// la sortie passe par « Passer », qui termine l'onboarding avec la ligne Neutre.
 export default function OnboardingError({ retry }: OnboardingErrorProps) {
   return (
     <Empty className="rounded-xl bg-card">
@@ -33,14 +35,7 @@ export default function OnboardingError({ retry }: OnboardingErrorProps) {
         <Button className="h-10 px-4" onClick={() => retry()}>
           Réessayer
         </Button>
-        <Button
-          variant="secondary"
-          className="h-10 px-4"
-          nativeButton={false}
-          render={<Link href="/" />}
-        >
-          Aller au calendrier
-        </Button>
+        <SkipButton label="Passer et aller au calendrier" />
       </EmptyContent>
     </Empty>
   )

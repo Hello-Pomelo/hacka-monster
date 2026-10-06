@@ -5,7 +5,7 @@ import { useState } from "react"
 import { saveCharter } from "@/app/(app)/parametrage/actions"
 import { SaveIndicator } from "@/components/parametrage/save-indicator"
 import { StringListInput } from "@/components/parametrage/string-list-input"
-import { useAutosave } from "@/components/parametrage/use-autosave"
+import { changedFields, useAutosave } from "@/components/parametrage/use-autosave"
 import {
   Card,
   CardAction,
@@ -51,9 +51,12 @@ function toCharterFields(charter: Charter): CharterFields {
 
 // Règles de la charte commune (spec Paramétrage, E1 étape 4), enregistrées automatiquement.
 // L'état local survit aux rafraîchissements du Server Component parent après chaque enregistrement.
+// Seuls les champs modifiés partent : tous les admins modifient la charte (D24).
 export function CharterForm({ charter }: { charter: Charter }) {
   const [fields, setFields] = useState<CharterFields>(() => toCharterFields(charter))
-  const { state } = useAutosave(fields, saveCharter)
+  const { state } = useAutosave(fields, (next, previous) =>
+    saveCharter(changedFields(previous, next))
+  )
 
   function update(patch: Partial<CharterFields>) {
     setFields((current) => ({ ...current, ...patch }))

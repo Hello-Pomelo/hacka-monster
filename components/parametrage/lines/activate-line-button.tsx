@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { unstable_rethrow, useRouter } from "next/navigation"
 import { Check } from "lucide-react"
 import { toast } from "sonner"
 
@@ -38,19 +38,24 @@ export function ActivateLineButton({ lineId, lineName, configured, mode }: Activ
 
   function activate() {
     startTransition(async () => {
-      const result = await activateLine(lineId)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await activateLine(lineId)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        toast.success(`Ligne ${lineName} activée`)
+        if (mode === "settings") {
+          router.refresh()
+          return
+        }
+        // Redirige vers le calendrier en cas de succès : `unstable_rethrow` la laisse au routeur.
+        const finished = await finishOnboarding()
+        if (finished && !finished.ok) toast.error(finished.error)
+      } catch (error) {
+        unstable_rethrow(error)
+        toast.error("La ligne n'a pas pu être activée. Vérifiez votre connexion puis réessayez.")
       }
-      toast.success(`Ligne ${lineName} activée`)
-      if (mode === "settings") {
-        router.refresh()
-        return
-      }
-      // Redirige vers le calendrier en cas de succès.
-      const finished = await finishOnboarding()
-      if (finished && !finished.ok) toast.error(finished.error)
     })
   }
 

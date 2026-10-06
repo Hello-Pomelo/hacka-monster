@@ -130,7 +130,8 @@ export async function proposeLine(input: { line: EditorialLine; posts: string[] 
   return toProposal(json)
 }
 
-// À remplacer par l'assemblage de prompt de la piste Génération une fois fusionnée.
+// Post étalon sur la matière fixe, avec le prompt du paramétrage (`buildLineTestPrompts`) :
+// aucun post n'existe en base, la route /api/generate ne s'applique pas.
 export async function writeTestPost(input: {
   line: EditorialLine
   charter: Charter

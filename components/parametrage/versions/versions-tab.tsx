@@ -96,7 +96,7 @@ export async function VersionsTab() {
   )
 
   return (
-    <Card className="min-w-0">
+    <Card className="min-w-0 ring-0">
       <CardHeader>
         <CardTitle>Versions</CardTitle>
         <CardDescription>Version en vigueur de la charte et de chaque ligne éditoriale.</CardDescription>

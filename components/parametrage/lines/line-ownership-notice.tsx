@@ -42,14 +42,18 @@ export function LineOwnershipNotice({
     const code = line.code
     if (!isEditableLineCode(code)) return
     startTransition(async () => {
-      const result = await setMyLine(code)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await setMyLine(code)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        setOpen(false)
+        toast.success(`Vous êtes rattaché à la ligne ${line.name}`)
+        router.refresh()
+      } catch {
+        toast.error("Votre ligne n'a pas pu être enregistrée. Vérifiez votre connexion puis réessayez.")
       }
-      setOpen(false)
-      toast.success(`Vous êtes rattaché à la ligne ${line.name}`)
-      router.refresh()
     })
   }
 

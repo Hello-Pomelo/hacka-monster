@@ -1,6 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
+import { unstable_rethrow } from "next/navigation"
 import { toast } from "sonner"
 
 import { finishOnboarding } from "@/app/(onboarding)/onboarding/actions"
@@ -9,15 +10,20 @@ import { Spinner } from "@/components/ui/spinner"
 
 const SKIP_DESCRIPTION = "Aller au calendrier avec la ligne Neutre"
 
-// « Passer » : termine l'onboarding à n'importe quelle étape (D13). En cas de succès,
-// l'action redirige vers le calendrier ; la redirection est traitée par le routeur.
-export function SkipButton() {
+// « Passer » : termine l'onboarding à n'importe quelle étape (D13). En cas de succès, l'action
+// redirige vers le calendrier : `unstable_rethrow` laisse la redirection au routeur.
+export function SkipButton({ label = "Passer" }: { label?: string }) {
   const [pending, startTransition] = useTransition()
 
   function skip() {
     startTransition(async () => {
-      const result = await finishOnboarding()
-      if (result && !result.ok) toast.error(result.error)
+      try {
+        const result = await finishOnboarding()
+        if (result && !result.ok) toast.error(result.error)
+      } catch (error) {
+        unstable_rethrow(error)
+        toast.error("La configuration n'a pas pu être terminée. Vérifiez votre connexion puis réessayez.")
+      }
     })
   }
 
@@ -32,7 +38,7 @@ export function SkipButton() {
       onClick={skip}
     >
       {pending && <Spinner aria-hidden="true" />}
-      Passer
+      {label}
     </Button>
   )
 }

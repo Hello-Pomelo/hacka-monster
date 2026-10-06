@@ -9,40 +9,29 @@ import { addClient, updateClient } from "@/app/(app)/parametrage/actions"
 import { StringListInput } from "@/components/parametrage/string-list-input"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet, FieldTitle,
-} from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
-import {
-  CLIENT_STATUS_LABELS, clientInputSchema, type CharterClient, type ClientInput, type ClientStatus,
-} from "@/lib/parametrage/types"
+import { clientInputSchema, type CharterClient, type ClientInput } from "@/lib/parametrage/types"
+
+import { ClientStatusField } from "./client-status-field"
 
 type ClientDialogProps = { mode: "create" } | { mode: "edit"; client: CharterClient }
 
 type FieldErrors = { name?: string; aliases?: string }
 
-const STATUS_DESCRIPTIONS: Record<ClientStatus, string> = {
-  citable: "Le client peut être nommé.",
-  citable_without_detail: "Le client peut être nommé, sans détail sur le projet.",
-  not_citable: "Le client ne doit jamais être nommé.",
-}
-
-const STATUSES = Object.keys(STATUS_DESCRIPTIONS) as ClientStatus[]
-
 // Limites de `clientInputSchema`, reprises dans la saisie des alias.
 const MAX_ALIASES = 20
 const MAX_NAME_LENGTH = 120
-
-const CHOICE_CARD =
-  "border-input has-[>[data-slot=field]]:rounded-xl has-data-checked:border-primary has-data-checked:bg-tag *:data-[slot=field]:p-3"
-
-function isClientStatus(value: unknown): value is ClientStatus {
-  return typeof value === "string" && (STATUSES as string[]).includes(value)
-}
 
 function initialValues(props: ClientDialogProps): ClientInput {
   if (props.mode === "create") return { name: "", aliases: [], status: "citable" }
@@ -179,31 +168,12 @@ export function ClientDialog(props: ClientDialogProps) {
               <FieldError>{errors.aliases}</FieldError>
             </Field>
 
-            <FieldSet>
-              <FieldLegend id={`${idPrefix}-status-legend`} variant="label">
-                Statut
-              </FieldLegend>
-              <RadioGroup
-                value={values.status}
-                onValueChange={(value: unknown) => {
-                  if (isClientStatus(value)) update({ status: value })
-                }}
-                aria-labelledby={`${idPrefix}-status-legend`}
-                disabled={pending}
-              >
-                {STATUSES.map((status) => (
-                  <FieldLabel key={status} htmlFor={`${idPrefix}-status-${status}`} className={CHOICE_CARD}>
-                    <Field orientation="horizontal">
-                      <RadioGroupItem value={status} id={`${idPrefix}-status-${status}`} />
-                      <FieldContent>
-                        <FieldTitle>{CLIENT_STATUS_LABELS[status]}</FieldTitle>
-                        <FieldDescription>{STATUS_DESCRIPTIONS[status]}</FieldDescription>
-                      </FieldContent>
-                    </Field>
-                  </FieldLabel>
-                ))}
-              </RadioGroup>
-            </FieldSet>
+            <ClientStatusField
+              idPrefix={idPrefix}
+              value={values.status}
+              onChange={(status) => update({ status })}
+              disabled={pending}
+            />
           </FieldGroup>
 
           <DialogFooter>
