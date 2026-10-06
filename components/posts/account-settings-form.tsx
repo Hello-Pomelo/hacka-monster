@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useTransition, type FormEvent } from "react"
 import { toast } from "sonner"
 
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SETTINGS_ADMINS_HREF } from "@/lib/calendar"
 
 type AccountLine = { id: string; code: string; name: string }
 
@@ -18,7 +20,9 @@ type AccountSettingsFormProps = {
   lines: AccountLine[]
 }
 
-// Une ligne absente de la liste (Neutre, après un onboarding passé) s'affiche comme « aucune ligne ».
+// Une ligne absente de la liste (Neutre, après un onboarding passé) s'affiche comme « aucune ligne »
+// et peut être choisie ici. Une ligne Marketing ou RH se change dans l'écran Admins du paramétrage
+// (spec Paramétrage, D15) : le sélecteur est alors en lecture seule.
 function knownLineId(lineId: string | null, lines: AccountLine[]): string | null {
   return lines.some((line) => line.id === lineId) ? lineId : null
 }
@@ -34,16 +38,19 @@ export function AccountSettingsForm({ name: initialName, email, lineId: initialL
   const trimmedName = name.trim()
   const changed = trimmedName !== saved.name || lineId !== saved.lineId
   const canSubmit = !isPending && changed && trimmedName.length > 0
+  const lineLocked = saved.lineId !== null
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!canSubmit) return
     const next = { name: trimmedName, lineId }
     // Ligne non modifiée : elle n'est pas envoyée, pour ne pas remplacer une ligne Neutre par « aucune ».
-    const lineChanged = lineId !== saved.lineId
+    const changedLineId = lineId !== saved.lineId ? lineId : null
     startTransition(async () => {
       try {
-        const result = await updateAccount(lineChanged ? next : { name: next.name })
+        const result = await updateAccount(
+          changedLineId ? { name: next.name, lineId: changedLineId } : { name: next.name }
+        )
         if (!result.ok) {
           toast.error(result.error)
           return
@@ -83,7 +90,12 @@ export function AccountSettingsForm({ name: initialName, email, lineId: initialL
 
         <Field>
           <FieldLabel htmlFor="account-line">Ligne éditoriale</FieldLabel>
-          <Select items={lineItems} value={lineId} onValueChange={setLineId} disabled={isPending}>
+          <Select
+            items={lineItems}
+            value={lineId}
+            onValueChange={setLineId}
+            disabled={isPending || lineLocked}
+          >
             <SelectTrigger id="account-line" className="w-full data-[size=default]:h-10">
               <SelectValue placeholder="Choisir une ligne" />
             </SelectTrigger>
@@ -95,7 +107,17 @@ export function AccountSettingsForm({ name: initialName, email, lineId: initialL
               ))}
             </SelectContent>
           </Select>
-          <FieldDescription>Ligne proposée par défaut à la création de vos posts.</FieldDescription>
+          {lineLocked ? (
+            <FieldDescription>
+              Votre ligne de rattachement se modifie dans le{" "}
+              <Link href={SETTINGS_ADMINS_HREF}>paramétrage</Link>.
+            </FieldDescription>
+          ) : (
+            <FieldDescription>
+              Ligne proposée par défaut à la création de vos posts. Une fois enregistrée, elle se modifie
+              dans le paramétrage.
+            </FieldDescription>
+          )}
         </Field>
       </FieldGroup>
 

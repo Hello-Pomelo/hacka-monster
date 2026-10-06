@@ -3,7 +3,9 @@
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { CalendarDays, Files, Lightbulb, SlidersHorizontal, type LucideIcon } from "lucide-react"
+import type { MouseEvent } from "react"
 
+import { HOME_PANEL_ID, revealHomePanel } from "@/components/posts/home-scroll-target"
 import { cn } from "@/lib/utils"
 
 type NavKey = "calendar" | "ideas" | "posts" | "settings"
@@ -30,6 +32,14 @@ function activeKey(pathname: string, tab: string | null): NavKey | null {
   return null
 }
 
+// « Boîte à idées » depuis l'accueil : l'URL peut rester la même, le clic fait donc défiler lui-même
+// jusqu'à l'onglet Idées, et le lien ne ramène pas la page en haut (`scroll={false}`). Depuis un autre
+// écran, le bloc sous le calendrier défile à son arrivée (HomeScrollTarget).
+function revealIdeas(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  revealHomePanel(document.getElementById(HOME_PANEL_ID))
+}
+
 const countClass =
   "ml-auto inline-grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums"
 
@@ -49,6 +59,8 @@ export function AppSidebarNav({ ideaCount, failedCount }: AppSidebarNavProps) {
         <Link
           key={key}
           href={href}
+          scroll={key === "ideas" ? false : undefined}
+          onClick={key === "ideas" && pathname === "/" ? revealIdeas : undefined}
           aria-current={current === key ? "page" : undefined}
           className={cn(
             "group flex h-10 items-center gap-3 rounded-lg px-3 font-medium whitespace-nowrap text-sidebar-muted transition-colors",

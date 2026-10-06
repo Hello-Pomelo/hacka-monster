@@ -4,7 +4,7 @@ import Link from "next/link"
 import { StatusBadge } from "@/components/posts/status-badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { postHref, type CalendarPost } from "@/lib/calendar"
+import { postHref, safeLinkedInUrl, type CalendarPost } from "@/lib/calendar"
 import { isPostTypeId, POST_TYPES } from "@/lib/post-types"
 import { postTitle } from "@/lib/posts"
 
@@ -21,7 +21,7 @@ export function PostCard({ post, lineName }: PostCardProps) {
     post.origin === "linkedin_import"
       ? "Importé de LinkedIn"
       : [lineName, typeLabel].filter(Boolean).join(" · ")
-  const linkedinUrl = post.status === "published" ? post.linkedin_url : null
+  const linkedinUrl = post.status === "published" ? safeLinkedInUrl(post.linkedin_url) : null
   const failureReason = post.status === "failed" ? post.failure_reason : null
 
   return (

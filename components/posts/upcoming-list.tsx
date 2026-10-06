@@ -21,7 +21,8 @@ type UpcomingListProps = {
 }
 
 // Onglet « À venir » : posts non publiés à partir d'aujourd'hui, déjà filtrés et triés par l'appelant.
-// Un clic ouvre la vue jour en gardant le filtre de ligne (spec Mon calendrier 3.5).
+// Un clic ouvre la vue jour en gardant le filtre de ligne ; la fermer ramène à cet onglet
+// (spec Mon calendrier 3.5).
 export function UpcomingList({ posts, lineNames, view }: UpcomingListProps) {
   return (
     <div className="grid gap-3">
@@ -32,7 +33,7 @@ export function UpcomingList({ posts, lineNames, view }: UpcomingListProps) {
             return (
               <li key={post.id}>
                 <Link
-                  href={homeHref(view, { month: monthOf(post.day), day: post.day })}
+                  href={homeHref(view, { month: monthOf(post.day), day: post.day, tab: "a-venir" })}
                   scroll={false}
                   className="group grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3 border-b py-3"
                 >

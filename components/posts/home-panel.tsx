@@ -54,12 +54,12 @@ const byInstant = (a: CalendarPost, b: CalendarPost) => a.at - b.at
 export function HomePanel({ posts, suggestions, ideas, view, lines, today }: HomePanelProps) {
   const lineNameById = new Map(lines.map((line) => [line.id, line.name]))
   const lineNameByCode = new Map(lines.map((line) => [line.code, line.name]))
-  const scrollKey = view.day ?? (view.tab === "idees" ? "idees" : null)
+  const revealOnArrival = view.tab === "idees"
 
   if (view.day) {
     const day = view.day
     return (
-      <HomeScrollTarget scrollKey={scrollKey}>
+      <HomeScrollTarget day={day} revealOnArrival={revealOnArrival}>
         <CalendarDayView
           day={day}
           posts={posts.filter((post) => post.day === day).sort(byInstant)}
@@ -79,7 +79,7 @@ export function HomePanel({ posts, suggestions, ideas, view, lines, today }: Hom
     .sort(byInstant)
 
   return (
-    <HomeScrollTarget scrollKey={scrollKey}>
+    <HomeScrollTarget day={null} revealOnArrival={revealOnArrival}>
       <HomeTabs
         counts={{ suggestions: suggestions.length, "a-venir": upcoming.length, idees: ideas.length }}
         suggestions={

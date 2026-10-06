@@ -1,8 +1,8 @@
 "use client"
 
 import { Sparkles } from "lucide-react"
-import { useSearchParams } from "next/navigation"
-import type { ReactNode } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useState, type ReactNode } from "react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { HOME_TABS, type HomeTab } from "@/lib/calendar"
@@ -33,24 +33,34 @@ type HomeTabsProps = {
 
 // Onglets sous le calendrier (spec Mon calendrier 3.5). L'onglet actif suit le paramètre `onglet` :
 // le lien « Boîte à idées » de la navigation (`/?onglet=idees`) bascule l'onglet même depuis l'accueil.
-// Un changement d'onglet réécrit l'URL avec l'API History, sans aller-retour serveur.
+// Un changement d'onglet remplace l'URL et fait recalculer la page par le serveur : les liens construits
+// côté serveur (mois, filtre, jours, fermeture de la vue jour) gardent ainsi l'onglet actif.
+// L'onglet choisi s'affiche sans attendre la réponse, jusqu'au changement d'URL suivant.
 export function HomeTabs({ counts, suggestions, upcoming, ideas }: HomeTabsProps) {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const query = searchParams.toString()
   const requested = searchParams.get("onglet")
   const tab = isHomeTab(requested) ? requested : DEFAULT_TAB
 
+  const [pick, setPick] = useState<{ tab: HomeTab; query: string } | null>(null)
+  if (pick && pick.query !== query) setPick(null)
+  const active = pick && pick.query === query ? pick.tab : tab
+
   function selectTab(next: unknown) {
-    if (!isHomeTab(next)) return
-    const params = new URLSearchParams(window.location.search)
+    if (!isHomeTab(next) || next === active) return
+    const params = new URLSearchParams(query)
     if (next === DEFAULT_TAB) params.delete("onglet")
     else params.set("onglet", next)
-    const query = params.toString()
-    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname)
+    const nextQuery = params.toString()
+    setPick({ tab: next, query })
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
   }
 
   return (
     <section aria-label="Suggestions, posts à venir et idées" className="min-w-0">
-      <Tabs value={tab} onValueChange={selectTab} className="gap-4">
+      <Tabs value={active} onValueChange={selectTab} className="gap-4">
         <TabsList
           variant="line"
           className="w-full justify-start gap-3 rounded-none border-b p-0 group-data-horizontal/tabs:h-10"

@@ -9,12 +9,26 @@ import type { Tables } from "@/lib/supabase/database.types"
 // premier login (contrat 2).
 export const SETTINGS_CONNECTION_HREF = "/parametrage?onglet=connexion"
 export const SETTINGS_LINES_HREF = "/parametrage?onglet=lignes"
+export const SETTINGS_ADMINS_HREF = "/parametrage?onglet=admins"
 export const ACCOUNT_HREF = "/compte"
 export const ONBOARDING_HREF = "/onboarding"
 export const ALL_POSTS_HREF = "/posts"
 
 export function postHref(id: string): string {
   return `/posts/${id}`
+}
+
+// Lien « Voir sur LinkedIn » (contrat 6) : adresse https sur linkedin.com ou un de ses sous-domaines,
+// sinon null. `posts.linkedin_url` est modifiable par toute session : une autre adresse n'est pas suivie.
+export function safeLinkedInUrl(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    const onLinkedIn = parsed.hostname === "linkedin.com" || parsed.hostname.endsWith(".linkedin.com")
+    return parsed.protocol === "https:" && onLinkedIn ? parsed.href : null
+  } catch {
+    return null
+  }
 }
 
 // Filtre de ligne ; `null` correspond au filtre « Toutes ». Un post sans ligne (importé de LinkedIn,

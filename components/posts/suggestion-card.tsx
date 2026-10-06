@@ -26,22 +26,31 @@ export function SuggestionCard({ suggestion, lineName }: SuggestionCardProps) {
   const ReasonIcon = REASON_ICONS[suggestion.reason]
 
   // Appelée depuis le toast, après le démontage de la carte : pas de transition locale.
+  // Une action serveur rejetée (réseau, nouveau déploiement) donne un toast, pas l'écran d'erreur.
   async function restore() {
-    const result = await restoreSuggestion(suggestion.key)
-    if (!result.ok) toast.error(result.error)
+    try {
+      const result = await restoreSuggestion(suggestion.key)
+      if (!result.ok) toast.error(result.error)
+    } catch {
+      toast.error("La suggestion n'a pas pu être rétablie. Réessayez dans un instant.")
+    }
   }
 
   function dismiss() {
     startTransition(async () => {
-      const result = await dismissSuggestion(suggestion.key)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await dismissSuggestion(suggestion.key)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        toast("Suggestion ignorée.", {
+          duration: 5000,
+          action: { label: "Annuler", onClick: restore },
+        })
+      } catch {
+        toast.error("La suggestion n'a pas pu être ignorée. Réessayez dans un instant.")
       }
-      toast("Suggestion ignorée.", {
-        duration: 5000,
-        action: { label: "Annuler", onClick: restore },
-      })
     })
   }
 

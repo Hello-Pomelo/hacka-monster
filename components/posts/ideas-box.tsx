@@ -18,9 +18,13 @@ function IdeaRow({ idea }: { idea: Idea }) {
 
   function remove() {
     startTransition(async () => {
-      const result = await deleteIdea(idea.id)
-      if (!result.ok) toast.error(result.error)
-      else toast.success("Idée supprimée.")
+      try {
+        const result = await deleteIdea(idea.id)
+        if (!result.ok) toast.error(result.error)
+        else toast.success("Idée supprimée.")
+      } catch {
+        toast.error("L'idée n'a pas pu être supprimée. Réessayez dans un instant.")
+      }
     })
   }
 
@@ -56,12 +60,16 @@ export function IdeasBox({ ideas }: { ideas: Idea[] }) {
     const value = text.trim()
     if (!value) return
     startTransition(async () => {
-      const result = await addIdea(value)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
+      try {
+        const result = await addIdea(value)
+        if (!result.ok) {
+          toast.error(result.error)
+          return
+        }
+        setText("")
+      } catch {
+        toast.error("L'idée n'a pas pu être enregistrée. Réessayez dans un instant.")
       }
-      setText("")
     })
   }
 
