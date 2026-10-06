@@ -13,6 +13,8 @@ import {
   toPostError,
   type ActionResult,
   type EditorPost,
+  type LineOption,
+  type LinkedInConnectionSummary,
   type NewPostInput,
 } from "@/lib/creation"
 import {
@@ -24,8 +26,9 @@ import {
   getLines,
   getLinkedInConnection,
   zodFailure,
+  type ActionFailure,
 } from "@/lib/creation-data"
-import { checkGuardrails } from "@/lib/guardrails"
+import { checkGuardrails, type CharterRules, type GuardrailReport } from "@/lib/guardrails"
 import {
   MAX_POST_LENGTH,
   POST_IMAGES_BUCKET,
@@ -36,12 +39,12 @@ import {
 import { RECOMMENDED_SLOTS } from "@/lib/recommended-slots"
 import { defaultParamsFor, parisDateTimeToIso } from "@/lib/series"
 import { scheduleBlockers } from "@/lib/scheduling"
+import type { TablesUpdate } from "@/lib/supabase/database.types"
 
 const postIdSchema = z.uuid()
 const EDITABLE_STATUSES: PostStatus[] = ["draft", "failed"]
 const NOT_FOUND_MESSAGE = "Ce post n'existe pas ou n'est plus modifiable."
 const CHARTER_ERROR = "La charte n'a pas pu être lue. Réessayez."
-const CONNECTION_ERROR = "La connexion LinkedIn n'a pas pu être lue. Réessayez."
 
 function revalidatePost(postId: string) {
   revalidatePath("/posts")
@@ -49,10 +52,27 @@ function revalidatePost(postId: string) {
   revalidatePath("/")
 }
 
-// Rapport des garde-fous enregistré avec le texte (spec Paramétrage, section 5).
-async function guardrailReportFor(content: string, params: unknown) {
-  const charter = await getCharterRules()
-  return checkGuardrails(content, charter, { hashtagsWanted: parsePostParams(params).hashtags })
+// Rapport des garde-fous enregistré avec le texte (spec Paramétrage, section 5) ; null si la
+// charte n'a pas pu être lue.
+async function guardrailReportFor(content: string, params: unknown): Promise<GuardrailReport | null> {
+  try {
+    const charter = await getCharterRules()
+    return checkGuardrails(content, charter, { hashtagsWanted: parsePostParams(params).hashtags })
+  } catch {
+    return null
+  }
+}
+
+// Charte et connexion LinkedIn, relues à chaque programmation.
+async function readSchedulingContext(): Promise<
+  { ok: true; charter: CharterRules; connection: LinkedInConnectionSummary | null } | ActionFailure
+> {
+  try {
+    const [charter, connection] = await Promise.all([getCharterRules(), getLinkedInConnection()])
+    return { ok: true, charter, connection }
+  } catch {
+    return failure("La charte ou la connexion LinkedIn n'a pas pu être lue. Réessayez.")
+  }
 }
 
 // E1 « Écrire moi-même » : un Brouillon vide, sans série ni IA. La date du calendrier est
@@ -66,7 +86,7 @@ export async function createManualPost(input: NewPostInput): Promise<ActionResul
   const session = await getActionSession()
   if (!session) return failure(SIGNED_OUT_MESSAGE)
 
-  let lines
+  let lines: LineOption[]
   try {
     lines = await getLines()
   } catch {
@@ -128,20 +148,25 @@ export async function savePostDraft(input: {
     .maybeSingle()
   if (readError) return failure(toPostError(readError))
   if (!current) return failure(NOT_FOUND_MESSAGE)
+  // Le trigger ne contrôle le texte et la date qu'au passage en Programmé : un post déjà
+  // Programmé garde une date et un texte.
+  if (current.status === "scheduled" && scheduledAt === null) {
+    return failure("Un post programmé garde une date de publication : déprogrammez-le d'abord.", {
+      field: "scheduledAt",
+    })
+  }
+  if (current.status === "scheduled" && content !== undefined && !content.trim()) {
+    return failure("Un post programmé ne peut pas avoir un texte vide : déprogrammez-le d'abord.", {
+      field: "content",
+    })
+  }
 
-  const changes: {
-    content?: string
-    guardrail_report?: ReturnType<typeof checkGuardrails>
-    scheduled_at?: string | null
-    image_alt?: string | null
-  } = {}
+  const changes: TablesUpdate<"posts"> = {}
   if (content !== undefined && content !== current.content) {
-    try {
-      changes.guardrail_report = await guardrailReportFor(content, current.params)
-    } catch {
-      return failure(CHARTER_ERROR)
-    }
+    const report = await guardrailReportFor(content, current.params)
+    if (!report) return failure(CHARTER_ERROR)
     changes.content = content
+    changes.guardrail_report = report
   }
   if (scheduledAt !== undefined) changes.scheduled_at = scheduledAt
   if (imageAlt !== undefined) changes.image_alt = imageAlt || null
@@ -181,12 +206,8 @@ export async function saveGeneratedContent(postId: string, content: string): Pro
   if (readError) return failure(toPostError(readError))
   if (!current) return failure(NOT_FOUND_MESSAGE)
 
-  let report
-  try {
-    report = await guardrailReportFor(text, current.params)
-  } catch {
-    return failure(CHARTER_ERROR)
-  }
+  const report = await guardrailReportFor(text, current.params)
+  if (!report) return failure(CHARTER_ERROR)
 
   const { data, error } = await supabase
     .from("posts")
@@ -248,14 +269,6 @@ const setPostImageSchema = z
     { message: "Image invalide : JPG, PNG ou GIF.", path: ["path"] }
   )
 
-// Supprime une image remplacée ou retirée. Échec sans conséquence : le post ne la référence plus.
-async function removeStoredImage(
-  supabase: NonNullable<Awaited<ReturnType<typeof getActionSession>>>["supabase"],
-  path: string | null
-) {
-  if (path) await supabase.storage.from(POST_IMAGES_BUCKET).remove([path])
-}
-
 export async function setPostImage(input: {
   postId: string
   path: string
@@ -286,7 +299,10 @@ export async function setPostImage(input: {
   if (error) return failure(toPostError(error))
   if (!data) return failure(NOT_FOUND_MESSAGE)
 
-  if (current.image_path !== path) await removeStoredImage(supabase, current.image_path)
+  // Image remplacée : supprimée du bucket. Échec sans conséquence, le post ne la référence plus.
+  if (current.image_path && current.image_path !== path) {
+    await supabase.storage.from(POST_IMAGES_BUCKET).remove([current.image_path])
+  }
   revalidatePost(postId)
   return { ok: true, data }
 }
@@ -314,7 +330,7 @@ export async function removePostImage(postId: string): Promise<ActionResult<Edit
   if (error) return failure(toPostError(error))
   if (!data) return failure(NOT_FOUND_MESSAGE)
 
-  await removeStoredImage(supabase, current.image_path)
+  if (current.image_path) await supabase.storage.from(POST_IMAGES_BUCKET).remove([current.image_path])
   revalidatePost(postId)
   return { ok: true, data }
 }
@@ -337,18 +353,9 @@ export async function schedulePost(postId: string): Promise<ActionResult<EditorP
     return failure("Cette action n'est pas possible pour un post à ce statut.")
   }
 
-  let charter
-  let connection
-  try {
-    charter = await getCharterRules()
-  } catch {
-    return failure(CHARTER_ERROR)
-  }
-  try {
-    connection = await getLinkedInConnection()
-  } catch {
-    return failure(CONNECTION_ERROR)
-  }
+  const context = await readSchedulingContext()
+  if (!context.ok) return context
+  const { charter, connection } = context
 
   const [blocker] = scheduleBlockers(post, { charter, connection, now: new Date(), requireValidated: false })
   if (blocker) {
@@ -384,18 +391,9 @@ export async function scheduleValidatedPosts(seriesId: string): Promise<
   if (!session) return failure(SIGNED_OUT_MESSAGE)
   const { supabase } = session
 
-  let charter
-  let connection
-  try {
-    charter = await getCharterRules()
-  } catch {
-    return failure(CHARTER_ERROR)
-  }
-  try {
-    connection = await getLinkedInConnection()
-  } catch {
-    return failure(CONNECTION_ERROR)
-  }
+  const context = await readSchedulingContext()
+  if (!context.ok) return context
+  const { charter, connection } = context
   if (!connection) return failure(CREATION_TEXTS.linkedinMissing, { code: "not_connected" })
 
   const { data: posts, error: readError } = await supabase
