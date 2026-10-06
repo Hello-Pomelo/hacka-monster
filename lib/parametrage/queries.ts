@@ -9,10 +9,10 @@ import type { AdminRow, Charter, CharterClient, EditorialLine, ImportedPost } fr
 export const LINE_COLUMNS =
   "id, code, name, configured, brand, about, core_values, targets, voice_adjectives, we_are, we_are_not, pillars, target_per_week, defaults, reference_posts, version, updated_at, updated_by"
 
-const CHARTER_COLUMNS =
+export const CHARTER_COLUMNS =
   "id, banned_expressions, sensitive_topics, address_form, inclusive_writing, version, updated_at, updated_by"
 
-const CLIENT_COLUMNS = "id, name, aliases, status, created_at"
+export const CLIENT_COLUMNS = "id, name, aliases, status, created_at"
 
 const LINE_ORDER = ["marketing", "rh", "neutre"]
 
@@ -21,6 +21,17 @@ export async function getEditorialLines(): Promise<EditorialLine[]> {
   const { data, error } = await supabase.from("editorial_lines").select(LINE_COLUMNS)
   if (error) throw new Error("Lignes éditoriales illisibles.")
   return data.sort((a, b) => LINE_ORDER.indexOf(a.code) - LINE_ORDER.indexOf(b.code))
+}
+
+export async function getEditorialLine(id: string): Promise<EditorialLine | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("editorial_lines")
+    .select(LINE_COLUMNS)
+    .eq("id", id)
+    .maybeSingle()
+  if (error) throw new Error("Ligne éditoriale illisible.")
+  return data
 }
 
 export async function getCharter(): Promise<{ charter: Charter; clients: CharterClient[] }> {

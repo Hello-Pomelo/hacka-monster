@@ -59,7 +59,13 @@ const TEMPLATES: ((k: number) => string)[] = [
   // Projet livré
   (k) => {
     const client = pick(
-      ["un distributeur de 300 personnes", "un réseau de 25 agences", "un industriel de l'agroalimentaire", "une mutuelle régionale"],
+      [
+        "un distributeur de 300 personnes",
+        "un réseau de 25 agences",
+        "un industriel de l'agroalimentaire",
+        "une mutuelle régionale",
+        "un transporteur de 800 personnes",
+      ],
       k
     )
     const before = pick(["3 jours", "une semaine", "la fin du mois", "48 heures"], k + 1)
@@ -84,7 +90,7 @@ const TEMPLATES: ((k: number) => string)[] = [
   },
   // Événement à venir
   (k) => {
-    const city = pick(["Lyon", "Nantes", "Lille", "Bordeaux"], k)
+    const city = pick(["Lyon", "Nantes", "Lille", "Bordeaux", "Rennes"], k)
     const topic = pick(
       ["la qualité des données", "les tableaux de bord qui servent vraiment", "la migration vers le cloud", "dbt en production"],
       k + 1
@@ -97,7 +103,16 @@ const TEMPLATES: ((k: number) => string)[] = [
   },
   // Recrutement
   (k) => {
-    const role = pick(["un ou une data engineer", "un ou une consultante BI", "un ou une analytics engineer"], k)
+    const role = pick(
+      [
+        "un ou une data engineer",
+        "un consultant ou une consultante BI",
+        "un ou une analytics engineer",
+        "un chef ou une cheffe de projet data",
+        "un ou une data analyst",
+      ],
+      k
+    )
     const city = pick(["Lyon", "Paris", "Nantes"], k + 1)
     const size = pick(["8", "12", "6"], k + 2)
     return [
@@ -116,6 +131,7 @@ const TEMPLATES: ((k: number) => string)[] = [
         "Un même indicateur donnait trois valeurs différentes selon le rapport consulté.",
         "Une migration d'orchestrateur a doublé le temps de chargement la première semaine.",
         "Un bug de fuseau horaire décalait les ventes du dimanche soir sur le lundi.",
+        "Un tableau de bord mettait 40 secondes à s'afficher le lundi matin.",
       ],
       k
     )
@@ -125,6 +141,7 @@ const TEMPLATES: ((k: number) => string)[] = [
         "Nous avons défini l'indicateur une seule fois, dans le modèle de données, et supprimé les calculs des rapports.",
         "Nous avons découpé les chargements par source et parallélisé les plus longs.",
         "Nous avons stocké toutes les dates en UTC et converti uniquement à l'affichage.",
+        "Nous avons préparé les agrégats la nuit au lieu de les calculer à chaque ouverture.",
       ],
       k
     )
@@ -134,6 +151,7 @@ const TEMPLATES: ((k: number) => string)[] = [
         "une définition partagée vaut mieux que dix rapports rapides",
         "mesurer avant de migrer, pour savoir ce qu'on compare",
         "un fuseau horaire se décide au début du projet, pas à la fin",
+        "un calcul fait une fois la nuit coûte moins cher que cent fois le matin",
       ],
       k
     )
@@ -149,6 +167,7 @@ const TEMPLATES: ((k: number) => string)[] = [
         "Cette semaine, toute l'équipe s'est retrouvée pour notre séminaire de rentrée.",
         "Chaque mardi midi, une personne de l'équipe présente un sujet qui l'intéresse.",
         "Hier, nous avons fêté les 5 ans de l'agence de Lyon.",
+        "Ce matin, petit-déjeuner d'équipe pour accueillir les alternants de la rentrée.",
       ],
       k
     )
@@ -165,7 +184,16 @@ const TEMPLATES: ((k: number) => string)[] = [
   },
   // Retour sur un événement
   (k) => {
-    const event = pick(["un salon de la data", "une conférence BI", "un webinar sur la gouvernance des données"], k)
+    const event = pick(
+      [
+        "un salon de la data",
+        "une conférence BI",
+        "un webinar sur la gouvernance des données",
+        "une journée de conférences sur le cloud",
+        "un forum de l'emploi tech",
+      ],
+      k
+    )
     const people = pick(["4", "6", "3"], k + 1)
     return [
       `Retour sur ${event}, où nous étions ${people} de l'équipe.`,
@@ -175,7 +203,16 @@ const TEMPLATES: ((k: number) => string)[] = [
   },
   // Projet livré : migration
   (k) => {
-    const client = pick(["un groupe de distribution", "une société de services", "un acteur du transport"], k)
+    const client = pick(
+      [
+        "un groupe de distribution",
+        "une société de services",
+        "un acteur du transport",
+        "un réseau de cliniques",
+        "un fabricant de mobilier",
+      ],
+      k
+    )
     const tables = pick(["180", "250", "90"], k + 1)
     return [
       `Migration terminée pour ${client} : ${tables} tables déplacées vers le cloud, sans interruption pour les utilisateurs.`,
@@ -186,7 +223,7 @@ const TEMPLATES: ((k: number) => string)[] = [
   },
   // Marque employeur : un métier
   (k) => {
-    const name = pick(["Léa", "Sarah", "Nora", "Inès"], k)
+    const name = pick(["Léa", "Sarah", "Nora", "Inès", "Camille"], k)
     return [
       `À quoi ressemble la journée d'une data engineer ? ${name} nous a ouvert son agenda.`,
       "9 h : point avec le client sur les chargements de la nuit. 11 h : revue de code avec l'équipe. 14 h : atelier avec les métiers pour définir un indicateur.",

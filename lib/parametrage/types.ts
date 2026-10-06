@@ -108,7 +108,11 @@ export const charterFieldsSchema = z.object({
 export type CharterFields = z.infer<typeof charterFieldsSchema>
 
 export const clientInputSchema = z.object({
-  name: z.string().trim().min(1, "Saisissez le nom du client.").max(120),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Saisissez le nom du client.")
+    .max(120, "Le nom du client fait 120 caractères au plus."),
   aliases: z.array(listItem(120)).max(20),
   status: z.enum(Constants.public.Enums.client_status),
 })

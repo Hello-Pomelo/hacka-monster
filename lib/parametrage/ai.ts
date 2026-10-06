@@ -114,12 +114,13 @@ export async function proposeLine(input: { line: EditorialLine; posts: string[] 
 
   let text: string
   try {
-    ;({ text } = await generateText({
+    const result = await generateText({
       model,
       instructions: LINE_PROPOSAL_INSTRUCTIONS,
       prompt,
       timeout: { totalMs: TIMEOUT_MS },
-    }))
+    })
+    text = result.text
   } catch (error) {
     throw toModelError(error)
   }
@@ -146,7 +147,8 @@ export async function writeTestPost(input: {
 
   let text: string
   try {
-    ;({ text } = await generateText({ model, instructions, prompt, timeout: { totalMs: TIMEOUT_MS } }))
+    const result = await generateText({ model, instructions, prompt, timeout: { totalMs: TIMEOUT_MS } })
+    text = result.text
   } catch (error) {
     throw toModelError(error)
   }
