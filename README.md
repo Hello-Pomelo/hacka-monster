@@ -4,6 +4,8 @@ Outil interne de création de posts LinkedIn assisté par IA, réalisé en 6h pe
 
 L'utilisateur paramètre un post, l'IA le rédige dans le ton de l'entreprise, l'utilisateur le relit, l'ajuste puis le valide. L'équipe marketing / communication relit les posts destinés à la page entreprise.
 
+Le [cahier des charges](docs/cahier-des-charges.md) est le contexte directeur du projet : besoins, utilisateurs, fonctionnalités (F1 à F7) et périmètre du MVP. Toute décision de conception s'y réfère ; en cas d'écart avec ce README, le cahier des charges fait foi.
+
 ## Parcours principal
 
 ```
