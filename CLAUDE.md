@@ -1,6 +1,9 @@
 # CLAUDE.md
 
-Guide de travail pour Claude Code et les développeurs de Hacka Monster. Le contexte fonctionnel, le périmètre du MVP et le modèle de données sont dans @README.md.
+Guide de travail pour Claude Code et les développeurs de Hacka Monster.
+
+- **Le besoin fait foi dans @docs/cahier-des-charges.md** : le lire avant toute fonctionnalité et citer la référence (F1 à F7) concernée. En cas d'écart avec le README, le cahier des charges l'emporte.
+- La stack, l'installation et le modèle de données sont dans @README.md.
 
 ## Contexte et priorités
 
@@ -13,7 +16,7 @@ Ordre de priorité pour toute décision :
 
 Conséquences :
 - Faire la solution la plus simple qui marche. Pas d'abstraction « pour plus tard », pas de généralisation prématurée.
-- Ne pas ajouter de fonctionnalité hors du périmètre MVP du README sans demande explicite.
+- Ne pas ajouter de fonctionnalité hors du périmètre MVP du cahier des charges sans demande explicite. Les lignes « Non exigé » (vue relecteur F6, calendrier F1) passent après le parcours principal.
 - Ne pas refactorer du code qui n'est pas dans le périmètre de la tâche en cours : d'autres personnes travaillent dessus en même temps.
 
 ## Stack
