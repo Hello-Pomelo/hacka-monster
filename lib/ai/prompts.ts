@@ -123,3 +123,216 @@ export function buildUserPrompt(input: GenerateInput): string {
 
   return lines.join("\n")
 }
+
+// Paramétrage rédaction (piste Paramétrage) ------------------------------------------------
+// Proposition de ligne par l'IA (E1, étape 3) et post de test (E1, étape 5). L'assemblage suit
+// l'ordre de la spec Paramétrage, section 5 : rôle et règles LinkedIn, charte, ligne, gabarit,
+// réglages, matière.
+
+// Le prompt de proposition reste sous environ 20 000 caractères, posts compris.
+const LINE_PROPOSAL_MAX_CHARS = 20_000
+const LINE_PROPOSAL_MAX_POST_CHARS = 1_500
+
+export const LINE_PROPOSAL_INSTRUCTIONS = [
+  "Tu es responsable éditorial LinkedIn d'une entreprise. Tu analyses ses posts publiés pour décrire sa voix et proposer sa ligne éditoriale.",
+  "Tu réponds uniquement par un objet JSON valide, sans texte autour ni bloc de code.",
+].join("\n")
+
+function listOrNone(items: string[]): string {
+  const filled = items.map((item) => item.trim()).filter(Boolean)
+  return filled.length > 0 ? filled.join(" ; ") : "(non renseigné)"
+}
+
+export function buildLineProposalPrompt(input: {
+  brand: string
+  about: string
+  coreValues: string[]
+  targets: string
+  posts: string[]
+}): string {
+  const header = [
+    "Identité de l'entreprise :",
+    `- Marque : ${input.brand.trim() || "(non renseignée)"}`,
+    `- Qui sommes-nous : ${input.about.trim() || "(non renseigné)"}`,
+    `- Valeurs : ${listOrNone(input.coreValues)}`,
+    `- Cibles : ${input.targets.trim() || "(non renseignées)"}`,
+    "",
+  ].join("\n")
+
+  const footer = [
+    "",
+    "Décris la voix de ces posts et propose la ligne éditoriale, sous la forme de cet objet JSON :",
+    "{",
+    '  "voice_adjectives": 3 adjectifs qui décrivent la voix,',
+    '  "we_are": 3 à 5 formules courtes qui complètent « on est… »,',
+    '  "we_are_not": 3 à 5 formules courtes qui complètent « on n\'est pas… »,',
+    '  "pillars": 3 à 5 piliers de contenu, les thèmes récurrents des posts,',
+    '  "target_per_week": nombre de posts par semaine visé, 1 sauf si l\'identité indique un autre rythme,',
+    '  "defaults": {',
+    `    "tone": un identifiant parmi ${Object.keys(TONE_LABELS).map((id) => `"${id}"`).join(", ")},`,
+    `    "length": un identifiant parmi ${Object.keys(LENGTH_TARGETS).map((id) => `"${id}"`).join(", ")},`,
+    '    "emojis": true si les posts en utilisent régulièrement, sinon false,',
+    '    "hashtags": true si les posts en utilisent régulièrement, sinon false,',
+    '    "cta": un appel à l\'action récurrent en une phrase courte, ou "" s\'il n\'y en a pas',
+    "  }",
+    "}",
+    "",
+    "Règles :",
+    "- Tout est en français. Chaque adjectif, formule ou pilier tient en 1 à 6 mots, sans majuscule initiale.",
+    "- Tire la voix et les piliers des posts ; l'identité sert de contexte.",
+    "- N'invente ni client, ni chiffre, ni nom.",
+  ].join("\n")
+
+  const budget = LINE_PROPOSAL_MAX_CHARS - header.length - footer.length - 200
+  const kept: string[] = []
+  let used = 0
+  for (const post of input.posts) {
+    const text = post.trim().slice(0, LINE_PROPOSAL_MAX_POST_CHARS)
+    if (!text) continue
+    if (used + text.length > budget) break
+    kept.push(text)
+    used += text.length + 6
+  }
+
+  return [
+    header,
+    `Posts publiés par l'entreprise (${kept.length}), séparés par une ligne « ---- » :`,
+    '"""',
+    kept.length > 0 ? kept.join("\n----\n") : "(aucun post)",
+    '"""',
+    footer,
+  ].join("\n")
+}
+
+// Réglages par défaut de la ligne, déjà lus en base (`editorial_lines.defaults`, voir parsePostParams).
+type LineTestParams = GenerateInput["params"]
+
+type LineTestLine = Pick<
+  Tables<"editorial_lines">,
+  | "name"
+  | "brand"
+  | "about"
+  | "core_values"
+  | "targets"
+  | "voice_adjectives"
+  | "we_are"
+  | "we_are_not"
+  | "pillars"
+  | "reference_posts"
+> & { defaults: LineTestParams }
+
+type LineTestCharter = Pick<
+  Tables<"charter">,
+  "banned_expressions" | "sensitive_topics" | "address_form" | "inclusive_writing"
+>
+
+type LineTestClient = Pick<Tables<"charter_clients">, "name" | "status">
+
+function charterRules(charter: LineTestCharter, clients: LineTestClient[]): string[] {
+  const notCitable = clients.filter((client) => client.status === "not_citable").map((c) => c.name)
+  const withoutDetail = clients
+    .filter((client) => client.status === "citable_without_detail")
+    .map((client) => client.name)
+
+  return [
+    "Charte de l'entreprise, à respecter dans chaque post :",
+    charter.address_form === "tu"
+      ? "- Tutoie le lecteur partout, appel à l'action compris : « partage », jamais « partagez »."
+      : "- Vouvoie le lecteur partout, appel à l'action compris : « partagez », jamais « partage ».",
+    charter.inclusive_writing
+      ? "- Utilise l'écriture inclusive par les doublets (« collaborateurs et collaboratrices »), sans point médian."
+      : "- N'utilise pas l'écriture inclusive.",
+    ...(charter.banned_expressions.length > 0
+      ? [
+          `- N'emploie jamais ces expressions, ni une variante proche : ${charter.banned_expressions.map((e) => `« ${e} »`).join(", ")}.`,
+        ]
+      : []),
+    ...(charter.sensitive_topics.length > 0
+      ? [`- N'aborde jamais ces sujets : ${charter.sensitive_topics.join(" ; ")}.`]
+      : []),
+    ...(notCitable.length > 0
+      ? [`- Ne cite jamais ces clients, ni leurs alias : ${notCitable.join(", ")}.`]
+      : []),
+    ...(withoutDetail.length > 0
+      ? [`- Ces clients peuvent être nommés, sans aucun détail sur le projet : ${withoutDetail.join(", ")}.`]
+      : []),
+    "- Désigne tout autre client par son secteur et sa taille, sauf si les notes le nomment.",
+  ]
+}
+
+function lineSection(line: LineTestLine): string[] {
+  const references = line.reference_posts.map((post) => post.trim()).filter(Boolean)
+  return [
+    `Ligne éditoriale ${line.name} :`,
+    `- Marque : ${line.brand.trim() || "(non renseignée)"}`,
+    `- Qui sommes-nous : ${line.about.trim() || "(non renseigné)"}`,
+    `- Valeurs : ${listOrNone(line.core_values)}`,
+    `- Cibles : ${line.targets.trim() || "(non renseignées)"}`,
+    `- Voix : ${listOrNone(line.voice_adjectives)}`,
+    `- On est : ${listOrNone(line.we_are)}`,
+    `- On n'est pas : ${listOrNone(line.we_are_not)}`,
+    `- Piliers de contenu : ${listOrNone(line.pillars)}`,
+    ...(references.length > 0
+      ? [
+          "",
+          "Posts de référence, dans la voix attendue (pour le style, pas pour le contenu) :",
+          '"""',
+          references.join("\n----\n"),
+          '"""',
+        ]
+      : []),
+  ]
+}
+
+export function buildLineTestPrompts(input: {
+  line: LineTestLine
+  charter: LineTestCharter
+  clients: LineTestClient[]
+  type: PostTypeId
+  answers: Record<string, string>
+}): { instructions: string; prompt: string } {
+  const template = POST_TYPES[input.type]
+  const params = input.line.defaults
+
+  const instructions = [
+    "Tu es le community manager de l'entreprise. Tu rédiges en français des posts LinkedIn prêts à publier sur la page de l'entreprise, au « nous », à partir des notes d'un collaborateur.",
+    "",
+    "Règles LinkedIn :",
+    "- L'accroche tient dans les 210 premiers caractères : une phrase tirée du fait le plus concret des notes, jamais une question rhétorique.",
+    "- Des paragraphes d'une ou deux phrases, séparés par une ligne vide.",
+    "- 3 000 caractères au plus.",
+    "- Texte brut : ni markdown, ni titre, ni gras, ni caractères Unicode stylisés.",
+    "- Chaque phrase reprend une information des notes : n'ajoute ni fait, ni chiffre, ni nom absent des notes.",
+    "- Réponds uniquement par le texte du post, sans introduction ni commentaire.",
+    "",
+    ...charterRules(input.charter, input.clients),
+    "",
+    ...lineSection(input.line),
+  ].join("\n")
+
+  const notes = template.questions.flatMap((question) => {
+    const answer = input.answers[question.id]?.trim()
+    return answer ? [`- ${question.label}\n  ${answer}`] : []
+  })
+
+  const prompt = [
+    `Type de post : ${template.label}`,
+    `Objectif : ${template.objective}`,
+    `Public : ${template.audience}`,
+    `Trame du corps : ${template.structure}`,
+    "",
+    "Réglages :",
+    `- Ton, dans le cadre de la ligne éditoriale : ${TONE_LABELS[params.tone]}`,
+    `- Longueur : ${LENGTH_TARGETS[params.length]}`,
+    `- Emojis : ${params.emojis ? "un seul, au début d'un paragraphe, jamais en puce" : "aucun"}`,
+    `- Appel à l'action, en dernier paragraphe (avant les hashtags) : ${params.cta ? `« ${params.cta} », remis en forme` : DEFAULT_CTAS[input.type]}`,
+    `- Hashtags : ${params.hashtags ? "1 ou 2 hashtags précis, seuls sur la dernière ligne" : "aucun"}`,
+    "",
+    "Notes de l'auteur :",
+    ...(notes.length > 0 ? notes : ["(aucune note)"]),
+    "",
+    "Rédige le post.",
+  ].join("\n")
+
+  return { instructions, prompt }
+}
