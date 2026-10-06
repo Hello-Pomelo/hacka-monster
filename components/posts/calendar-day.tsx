@@ -36,7 +36,8 @@ export type DayItem =
   | { kind: "post"; post: CalendarPost }
   | { kind: "suggestion"; suggestion: Suggestion }
 
-function PostItem({ post, isOverflow }: { post: CalendarPost; isOverflow: boolean }) {
+// Un clic sur un post sélectionne le jour : le détail s'affiche sous le calendrier (spec 3.4).
+function PostItem({ post, href, isOverflow }: { post: CalendarPost; href: string; isOverflow: boolean }) {
   const status = displayStatus(post)
   if (status === "archived" || status === "pending") return null
 
@@ -49,7 +50,8 @@ function PostItem({ post, isOverflow }: { post: CalendarPost; isOverflow: boolea
   return (
     <li className={cn("min-w-0", isOverflow && "hidden")}>
       <Link
-        href={`/posts/${post.id}`}
+        href={href}
+        scroll={false}
         title={hint}
         aria-label={`${label}, ${post.time}, ${title}`}
         className={cn(ITEM_BASE, ITEM_STYLES[status])}
@@ -152,7 +154,7 @@ export function CalendarDay({
         <ul className="pointer-events-none relative z-10 flex min-w-0 flex-col gap-[3px]">
           {items.map((item, index) =>
             item.kind === "post" ? (
-              <PostItem key={item.post.id} post={item.post} isOverflow={index >= MAX_ITEMS} />
+              <PostItem key={item.post.id} post={item.post} href={href} isOverflow={index >= MAX_ITEMS} />
             ) : (
               <SuggestionItem
                 key={item.suggestion.key}

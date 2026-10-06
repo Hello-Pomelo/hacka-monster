@@ -16,7 +16,10 @@ import type { PostStatus } from "@/lib/posts"
 import { cn } from "@/lib/utils"
 
 const WEEK_DAYS = 7
-const COUNTED_IN_MONTH: PostStatus[] = ["scheduled", "published"]
+// Spec 3.3 : Programmé, En cours et Publié ; En relecture (`pending`) s'y ajoute en P1.
+const COUNTED_IN_MONTH: readonly PostStatus[] = ["scheduled", "publishing", "published"]
+
+const perWeekFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
 
 // Badge rendu en `span` : le composant `Badge` (Base UI) ne s'exécute pas dans un Server Component.
 const BADGE_CLASS = "h-[22px] text-[11px] tracking-[0.05em] uppercase"
@@ -66,8 +69,8 @@ function LastPublished({
   }
 
   const days = daysBetween(last.day, today)
-  // Délai visé entre deux posts : une semaine divisée par la fréquence cible.
-  const maxGap = targetPerWeek > 0 ? WEEK_DAYS / targetPerWeek : WEEK_DAYS
+  // Délai visé entre deux posts : une semaine divisée par la fréquence cible. Sans fréquence, pas d'objectif.
+  const overdue = targetPerWeek > 0 && days > WEEK_DAYS / targetPerWeek
   return (
     <PulseCard label="Dernier post sur la page">
       {days === 0 ? (
@@ -78,7 +81,7 @@ function LastPublished({
           detail={`le ${formatDayShort(last.day)}`}
         />
       )}
-      {days > maxGap && targetPerWeek > 0 && (
+      {overdue && (
         <span>
           <span
             className={cn(
@@ -88,7 +91,7 @@ function LastPublished({
             )}
           >
             <History aria-hidden />
-            Objectif : {targetPerWeek} par semaine
+            Objectif : {perWeekFormat.format(targetPerWeek)} par semaine
           </span>
         </span>
       )}
@@ -119,12 +122,18 @@ export function HomePulse({ posts, today, targetPerWeek, suggestionCount }: Home
       <LastPublished posts={posts} today={today} targetPerWeek={targetPerWeek} />
 
       <PulseCard label={`Programmés en ${monthName}`}>
-        <PulseValue value={monthCount} detail={`sur ${goal} visé${goal > 1 ? "s" : ""}`} />
-        <Progress
-          value={goal > 0 ? Math.min(100, (monthCount / goal) * 100) : 0}
-          aria-label={`${monthCount} sur ${goal} visés`}
-          className="[&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-chip"
-        />
+        {goal > 0 ? (
+          <>
+            <PulseValue value={monthCount} detail={`sur ${goal} visé${goal > 1 ? "s" : ""}`} />
+            <Progress
+              value={Math.min(100, (monthCount / goal) * 100)}
+              aria-label={`${monthCount} sur ${goal} visé${goal > 1 ? "s" : ""}`}
+              className="[&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-chip"
+            />
+          </>
+        ) : (
+          <PulseValue value={monthCount} />
+        )}
       </PulseCard>
 
       <PulseCard label="Suggestions à traiter">

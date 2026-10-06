@@ -5,6 +5,7 @@ import { z } from "zod"
 import { HomeHeader } from "@/components/posts/home-header"
 import { HomePanel } from "@/components/posts/home-panel"
 import { HomePulse } from "@/components/posts/home-pulse"
+import { LineBanner } from "@/components/posts/line-banner"
 import { PostCalendar } from "@/components/posts/post-calendar"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
@@ -14,6 +15,7 @@ import {
   lastDayOfMonth,
   LINE_FILTERS,
   monthOf,
+  postMatchesLine,
   toCalendarPost,
   toDayKey,
   type HomeView,
@@ -79,6 +81,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   if (postsResult.error || linesResult.error || ideasResult.error || dismissedResult.error) {
     return (
       <>
+        <LineBanner lineId={profile.line_id} />
         <HomeHeader name={profile.nom} scheduledCount={null} />
         <LoadError />
       </>
@@ -95,12 +98,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   })
 
   const filteredLines = view.line === "toutes" ? lines : lines.filter((line) => line.code === view.line)
-  const lineIds = new Set(filteredLines.map((line) => line.id))
-  const posts = (
-    view.line === "toutes"
-      ? allPosts
-      : allPosts.filter((post) => post.editorial_line_id !== null && lineIds.has(post.editorial_line_id))
-  )
+  // Les posts sans ligne (importés de LinkedIn) restent visibles sous tous les filtres (contrat 6).
+  const lineIds = view.line === "toutes" ? null : new Set(filteredLines.map((line) => line.id))
+  const posts = allPosts
+    .filter((post) => postMatchesLine(post, lineIds))
     .map(toCalendarPost)
     .sort((a, b) => a.at - b.at)
   const visibleSuggestions =
@@ -117,7 +118,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   ).length
 
   const monthEnd = lastDayOfMonth(monthOf(today))
-  const targetPerWeek = filteredLines.reduce((sum, line) => sum + line.target_per_week, 0)
+  // Objectif de rythme : lignes Marketing et RH seulement. Neutre, ligne de repli figée, n'a pas d'objectif.
+  const targetPerWeek = filteredLines
+    .filter((line) => line.code !== "neutre")
+    .reduce((sum, line) => sum + line.target_per_week, 0)
   const ideas = ideasResult.data.map((idea) => ({
     id: idea.id,
     text: idea.text,
@@ -127,6 +131,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <>
+      <LineBanner lineId={profile.line_id} />
       <HomeHeader name={profile.nom} scheduledCount={scheduledCount} />
       <HomePulse
         posts={posts}
@@ -140,8 +145,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           posts={posts}
           suggestions={visibleSuggestions}
           ideas={ideas}
-          selectedDay={view.day}
-          tab={view.tab}
+          view={view}
           lines={lines}
           today={today}
         />

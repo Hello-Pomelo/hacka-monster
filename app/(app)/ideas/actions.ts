@@ -11,11 +11,19 @@ const ideaTextSchema = z.string().trim().min(1, "Notez votre idée.").max(500, "
 const ideaIdSchema = z.uuid()
 const suggestionKeySchema = z.string().trim().min(1).max(200)
 
+const SESSION_EXPIRED: ActionResult = { ok: false, error: "Session expirée. Reconnectez-vous." }
+
+async function getUserId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  const { data } = await supabase.auth.getClaims()
+  return data?.claims.sub ?? null
+}
+
 export async function addIdea(text: string): Promise<ActionResult> {
   const parsed = ideaTextSchema.safeParse(text)
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Idée invalide." }
 
   const supabase = await createClient()
+  if (!(await getUserId(supabase))) return SESSION_EXPIRED
   const { error } = await supabase.from("ideas").insert({ text: parsed.data })
   if (error) return { ok: false, error: "L'idée n'a pas pu être enregistrée." }
 
@@ -28,6 +36,7 @@ export async function deleteIdea(id: string): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: "Idée introuvable." }
 
   const supabase = await createClient()
+  if (!(await getUserId(supabase))) return SESSION_EXPIRED
   const { error } = await supabase.from("ideas").delete().eq("id", parsed.data)
   if (error) return { ok: false, error: "L'idée n'a pas pu être supprimée." }
 
@@ -40,6 +49,7 @@ export async function dismissSuggestion(key: string): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: "Suggestion introuvable." }
 
   const supabase = await createClient()
+  if (!(await getUserId(supabase))) return SESSION_EXPIRED
   const { error } = await supabase
     .from("dismissed_suggestions")
     .upsert({ suggestion_key: parsed.data }, { onConflict: "suggestion_key", ignoreDuplicates: true })
@@ -54,6 +64,7 @@ export async function restoreSuggestion(key: string): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: "Suggestion introuvable." }
 
   const supabase = await createClient()
+  if (!(await getUserId(supabase))) return SESSION_EXPIRED
   const { error } = await supabase.from("dismissed_suggestions").delete().eq("suggestion_key", parsed.data)
   if (error) return { ok: false, error: "La suggestion n'a pas pu être rétablie." }
 

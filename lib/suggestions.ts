@@ -1,9 +1,10 @@
-// Moteur de suggestions de l'accueil (spec Mon calendrier, section 5). Règles Rythme et
-// Marque employeur ; Agenda et Recrutement n'ont pas encore de source de données.
+// Moteur de suggestions de l'accueil (spec Mon calendrier, section 5) : règles Rythme et Marque employeur.
+// Agenda et Recrutement n'ont pas de source de données en v1 : ni lecture de l'agenda, ni offres d'emploi.
+// Un post sans ligne (importé de LinkedIn) appartient à l'historique de la page et compte pour chaque ligne.
 // Un jour s'écrit `YYYY-MM-DD`, en heure de Paris.
 
 import type { PostTypeId } from "@/lib/post-types"
-import type { Post } from "@/lib/posts"
+import type { Post, PostStatus } from "@/lib/posts"
 import type { Tables } from "@/lib/supabase/database.types"
 
 export type SuggestionLineCode = "marketing" | "rh"
@@ -26,7 +27,13 @@ export const REASON_LABELS: Record<Suggestion["reason"], string> = {
 
 const TIME_ZONE = "Europe/Paris"
 const DAY_MS = 86_400_000
+const WEEK_DAYS = 7
 const TEAM_WINDOW_DAYS = 35
+const TEAM_TYPE: PostTypeId = "employer_brand"
+// Statuts d'un post qui partira à sa date de diffusion.
+const UPCOMING_STATUSES: readonly PostStatus[] = ["scheduled", "publishing"]
+
+const perWeekFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
 
 const parisDayFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: TIME_ZONE,
@@ -117,9 +124,12 @@ const RHYTHM_CONTENT: Record<SuggestionLineCode, { type: PostTypeId; subject: st
   rh: { type: "employer_brand", subject: "Une journée dans l'équipe" },
 }
 
+type SuggestionPost = Pick<Post, "status" | "type" | "published_at" | "scheduled_at" | "editorial_line_id">
+type SuggestionLine = Pick<Tables<"editorial_lines">, "id" | "code" | "name" | "target_per_week">
+
 type SuggestionInput = {
-  posts: Pick<Post, "status" | "type" | "published_at" | "scheduled_at" | "editorial_line_id">[]
-  lines: Pick<Tables<"editorial_lines">, "id" | "code" | "name" | "target_per_week">[]
+  posts: SuggestionPost[]
+  lines: SuggestionLine[]
   dismissedKeys: string[]
   today: string
 }
@@ -128,54 +138,96 @@ function isSuggestionLine(code: string): code is SuggestionLineCode {
   return code === "marketing" || code === "rh"
 }
 
+// Jour de publication d'un post publié : `published_at`, sinon `scheduled_at`.
+function publishedDay(post: SuggestionPost): string | null {
+  const at = post.published_at ?? post.scheduled_at
+  return at ? parisDay(at) : null
+}
+
+// Jour de diffusion d'un post programmé ou en cours de publication.
+function upcomingDay(post: SuggestionPost): string | null {
+  return UPCOMING_STATUSES.includes(post.status) && post.scheduled_at ? parisDay(post.scheduled_at) : null
+}
+
+// Règle Rythme : le délai depuis le dernier post publié de la ligne dépasse 7 / fréquence cible (D22).
+// `posts` n'a pas de `suggestion_key` : un post programmé dans ce délai vaut suggestion traitée.
+function rhythmSuggestion(
+  line: SuggestionLine & { code: SuggestionLineCode },
+  posts: SuggestionPost[],
+  today: string,
+  week: string
+): Suggestion | null {
+  const linePosts = posts.filter((post) => post.editorial_line_id === null || post.editorial_line_id === line.id)
+  const maxGap = WEEK_DAYS / line.target_per_week
+
+  const lastPublished = linePosts
+    .flatMap((post) => {
+      const day = post.status === "published" ? publishedDay(post) : null
+      return day ? [day] : []
+    })
+    .sort()
+    .at(-1)
+  if (lastPublished && daysBetween(lastPublished, today) <= maxGap) return null
+
+  const windowEnd = addDays(today, Math.ceil(maxGap))
+  const handled = linePosts.some((post) => {
+    const day = upcomingDay(post)
+    return day !== null && day >= today && day <= windowEnd
+  })
+  if (handled) return null
+
+  const content = RHYTHM_CONTENT[line.code]
+  const perWeek = perWeekFormat.format(line.target_per_week)
+  return {
+    key: `rhythm:${line.code}:${week}`,
+    reason: "rhythm",
+    date: addDays(today, 1),
+    lineCode: line.code,
+    type: content.type,
+    title: "Reprendre la parole cette semaine",
+    why: lastPublished
+      ? `Dernier post publié le ${formatDayLong(lastPublished)}. Objectif de la ligne ${line.name} : ${perWeek} par semaine.`
+      : `Aucun post publié pour la ligne ${line.name}. Objectif : ${perWeek} par semaine.`,
+    subject: content.subject,
+  }
+}
+
+// Règle Marque employeur : aucun post `employer_brand` publié ou programmé depuis 5 semaines.
+function teamSuggestion(posts: SuggestionPost[], today: string, week: string): Suggestion | null {
+  const windowStart = addDays(today, -TEAM_WINDOW_DAYS)
+  const recent = posts.some((post) => {
+    if (post.type !== TEAM_TYPE) return false
+    const day = post.status === "published" ? publishedDay(post) : upcomingDay(post)
+    return day !== null && day >= windowStart
+  })
+  if (recent) return null
+
+  return {
+    key: `team:rh:${week}`,
+    reason: "team",
+    date: nextTuesday(today),
+    lineCode: "rh",
+    type: TEAM_TYPE,
+    title: "Montrer les coulisses de l'équipe",
+    why: "Aucun post marque employeur publié ou programmé depuis 5 semaines.",
+    subject: "Les coulisses de l'équipe",
+  }
+}
+
 export function computeSuggestions({ posts, lines, dismissedKeys, today }: SuggestionInput): Suggestion[] {
   const week = isoWeek(today)
   const suggestions: Suggestion[] = []
 
   for (const line of lines) {
-    if (!isSuggestionLine(line.code) || line.target_per_week <= 0) continue
-    const maxGap = 7 / line.target_per_week
-    const lastPublished = posts
-      .filter((post) => post.editorial_line_id === line.id && post.status === "published")
-      .flatMap((post) => (post.published_at ? [parisDay(post.published_at)] : []))
-      .sort()
-      .at(-1)
-    if (lastPublished && daysBetween(lastPublished, today) <= maxGap) continue
-
-    const content = RHYTHM_CONTENT[line.code]
-    suggestions.push({
-      key: `rhythm:${line.code}:${week}`,
-      reason: "rhythm",
-      date: addDays(today, 1),
-      lineCode: line.code,
-      type: content.type,
-      title: "Reprendre la parole cette semaine",
-      why: lastPublished
-        ? `Dernier post publié sur la ligne ${line.name} le ${formatDayLong(lastPublished)}.`
-        : `Aucun post publié sur la ligne ${line.name}.`,
-      subject: content.subject,
-    })
+    const { code } = line
+    if (!isSuggestionLine(code) || line.target_per_week <= 0) continue
+    const suggestion = rhythmSuggestion({ ...line, code }, posts, today, week)
+    if (suggestion) suggestions.push(suggestion)
   }
 
-  const hasRh = lines.some((line) => line.code === "rh")
-  const windowStart = addDays(today, -TEAM_WINDOW_DAYS)
-  const recentEmployerBrand = posts.some((post) => {
-    if (post.type !== "employer_brand") return false
-    const at =
-      post.status === "published" ? post.published_at : post.status === "scheduled" ? post.scheduled_at : null
-    return at !== null && parisDay(at) >= windowStart
-  })
-  if (hasRh && !recentEmployerBrand) {
-    suggestions.push({
-      key: `team:rh:${week}`,
-      reason: "team",
-      date: nextTuesday(today),
-      lineCode: "rh",
-      type: "employer_brand",
-      title: "Montrer les coulisses de l'équipe",
-      why: "Aucun post marque employeur publié ou programmé depuis 5 semaines.",
-      subject: "Les coulisses de l'équipe",
-    })
+  if (lines.some((line) => line.code === "rh")) {
+    const suggestion = teamSuggestion(posts, today, week)
+    if (suggestion) suggestions.push(suggestion)
   }
 
   const dismissed = new Set(dismissedKeys)

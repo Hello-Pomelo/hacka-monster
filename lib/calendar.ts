@@ -3,6 +3,35 @@
 // indépendantes du fuseau du serveur.
 
 import type { Post } from "@/lib/posts"
+import type { Tables } from "@/lib/supabase/database.types"
+
+// Liens fixés entre pistes : connexion LinkedIn (contrat 4), lignes éditoriales (contrat 3),
+// premier login (contrat 2).
+export const SETTINGS_CONNECTION_HREF = "/parametrage?onglet=connexion"
+export const SETTINGS_LINES_HREF = "/parametrage?onglet=lignes"
+export const ACCOUNT_HREF = "/compte"
+export const ONBOARDING_HREF = "/onboarding"
+export const ALL_POSTS_HREF = "/posts"
+
+export function postHref(id: string): string {
+  return `/posts/${id}`
+}
+
+// Filtre de ligne ; `null` correspond au filtre « Toutes ». Un post sans ligne (importé de LinkedIn,
+// post ancien) appartient à l'historique de la page : il passe tous les filtres.
+export function postMatchesLine(
+  post: Pick<Post, "editorial_line_id">,
+  lineIds: ReadonlySet<string> | null
+): boolean {
+  if (!lineIds || !post.editorial_line_id) return true
+  return lineIds.has(post.editorial_line_id)
+}
+
+// Bandeau « Ligne éditoriale non configurée » (contrat 3) : pas de ligne, ligne Neutre,
+// ou ligne pas encore activée.
+export function needsLineSetup(line: Pick<Tables<"editorial_lines">, "code" | "configured"> | null): boolean {
+  return !line || line.code === "neutre" || !line.configured
+}
 
 const TIME_ZONE = "Europe/Paris"
 const DAY_MS = 86_400_000

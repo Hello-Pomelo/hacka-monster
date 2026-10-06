@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarDays, PencilLine, X } from "lucide-react"
+import { CalendarDays, History, PencilLine, Users, X, type LucideIcon } from "lucide-react"
 import { useTransition } from "react"
 import { toast } from "sonner"
 
@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { formatDayLong, REASON_LABELS, type Suggestion } from "@/lib/suggestions"
 
+const REASON_ICONS: Record<Suggestion["reason"], LucideIcon> = {
+  rhythm: History,
+  team: Users,
+}
+
 type SuggestionCardProps = {
   suggestion: Suggestion
   lineName: string
@@ -18,6 +23,7 @@ type SuggestionCardProps = {
 
 export function SuggestionCard({ suggestion, lineName }: SuggestionCardProps) {
   const [pending, startTransition] = useTransition()
+  const ReasonIcon = REASON_ICONS[suggestion.reason]
 
   // Appelée depuis le toast, après le démontage de la carte : pas de transition locale.
   async function restore() {
@@ -42,7 +48,11 @@ export function SuggestionCard({ suggestion, lineName }: SuggestionCardProps) {
   return (
     <Card className="gap-2.5 px-4 py-4 ring-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Badge variant="secondary" className="bg-tag text-tag-foreground border-tag-border">
+        <Badge
+          variant="secondary"
+          className="h-[22px] bg-tag text-[11px] tracking-[0.05em] text-tag-foreground uppercase [&_svg]:size-3"
+        >
+          <ReasonIcon aria-hidden />
           {REASON_LABELS[suggestion.reason]}
         </Badge>
         <span className="flex items-center gap-1.5 text-xs text-subtle-foreground first-letter:uppercase">
