@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react"
 import { ArrowLeftRight, Link2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants, type Button } from "@/components/ui/button"
 import type { ConnectionState } from "@/lib/linkedin/types"
 import { cn } from "@/lib/utils"
 
@@ -24,14 +24,9 @@ type ConnectButtonProps = {
 // ni suivie par le routeur client.
 export function ConnectButton({ href, variant, className, children }: ConnectButtonProps) {
   return (
-    <Button
-      variant={variant}
-      className={cn("h-10 px-4", className)}
-      nativeButton={false}
-      render={<a href={href} />}
-    >
+    <a href={href} className={cn(buttonVariants({ variant }), "h-10 px-4", className)}>
       {children}
-    </Button>
+    </a>
   )
 }
 

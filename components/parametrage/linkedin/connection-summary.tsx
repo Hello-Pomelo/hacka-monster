@@ -10,7 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { badgeVariants } from "@/components/ui/badge"
 import {
   Card,
@@ -20,15 +19,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  LINKEDIN_ERROR_MESSAGES,
-  type ConnectionState,
-  type LinkedInConnectionView,
-} from "@/lib/linkedin/types"
+import type { ConnectionState, LinkedInConnectionView } from "@/lib/linkedin/types"
 import { formatDateTime, formatShortDate } from "@/lib/parametrage/format"
 import { cn } from "@/lib/utils"
 
 import { ConnectButton } from "./connection-actions"
+import { ConnectionStateAlert } from "./linkedin-notice"
 import { PageAvatar } from "./page-choice-form"
 import { ReimportButton } from "./reimport-button"
 
@@ -43,8 +39,6 @@ const STATE_BADGES: Record<
   demo: { variant: "secondary", className: "bg-warning-surface text-warning", icon: FlaskConical, label: "Simulée (mode démo)" },
 }
 
-const DEMO_NOTICE =
-  "Connexion simulée : LinkedIn n'est pas configuré sur le serveur. Les posts importés sont fictifs et rien n'est publié sur LinkedIn."
 const DEMO_MODE_HINT = "Mode démo : LinkedIn n'est pas configuré sur le serveur, la connexion sera simulée."
 
 // Badge rendu en `span` : le composant `Badge` (Base UI) ne s'exécute pas dans un Server Component.
@@ -96,26 +90,6 @@ function ConnectionDetails({ connection }: { connection: LinkedInConnectionView 
   )
 }
 
-function StateAlert({ state }: { state: ConnectionState }) {
-  if (state === "demo") {
-    return (
-      <Alert className="border-transparent bg-chip text-chip-foreground">
-        <FlaskConical aria-hidden="true" />
-        <AlertDescription className="text-chip-foreground">{DEMO_NOTICE}</AlertDescription>
-      </Alert>
-    )
-  }
-  if (state === "expired") {
-    return (
-      <Alert variant="destructive" className="border-destructive">
-        <TriangleAlert aria-hidden="true" />
-        <AlertTitle>{LINKEDIN_ERROR_MESSAGES.expired}</AlertTitle>
-      </Alert>
-    )
-  }
-  return null
-}
-
 type ConnectionSummaryProps = {
   connection: LinkedInConnectionView | null
   state: ConnectionState
@@ -146,7 +120,7 @@ function SettingsSummary({ connection, state, demoMode, children }: ConnectionSu
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-5">
-        <StateAlert state={state} />
+        <ConnectionStateAlert state={state} />
         {connection ? (
           <ConnectionDetails connection={connection} />
         ) : (
@@ -190,7 +164,7 @@ function OnboardingSummary({ connection, state, connectHref, demoMode }: Connect
     return (
       <Card className="ring-0">
         <CardContent className="grid justify-items-start gap-4">
-          <StateAlert state={state} />
+          <ConnectionStateAlert state={state} />
           <ConnectButton href={connectHref}>
             <Link2 aria-hidden="true" />
             Reconnecter la page LinkedIn

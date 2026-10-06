@@ -1,8 +1,12 @@
 import type { ReactNode } from "react"
-import { TriangleAlert } from "lucide-react"
+import { FlaskConical, TriangleAlert } from "lucide-react"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
+import { LINKEDIN_ERROR_MESSAGES, type ConnectionState } from "@/lib/linkedin/types"
+
+const DEMO_NOTICE =
+  "Connexion simulée : LinkedIn n'est pas configuré sur le serveur. Les posts importés sont fictifs et rien n'est publié sur LinkedIn."
 
 type LinkedInNoticeProps = {
   message: string
@@ -26,4 +30,25 @@ export function LinkedInNotice({ message, hint, children }: LinkedInNoticeProps)
       </CardContent>
     </Card>
   )
+}
+
+// Alerte sur la connexion enregistrée : simulée (mode démo) ou expirée. Rien dans les autres états.
+export function ConnectionStateAlert({ state }: { state: ConnectionState }) {
+  if (state === "demo") {
+    return (
+      <Alert role="note" className="border-transparent bg-chip text-chip-foreground">
+        <FlaskConical aria-hidden="true" />
+        <AlertDescription className="text-chip-foreground">{DEMO_NOTICE}</AlertDescription>
+      </Alert>
+    )
+  }
+  if (state === "expired") {
+    return (
+      <Alert variant="destructive" className="border-destructive">
+        <TriangleAlert aria-hidden="true" />
+        <AlertTitle>{LINKEDIN_ERROR_MESSAGES.expired}</AlertTitle>
+      </Alert>
+    )
+  }
+  return null
 }
