@@ -56,15 +56,25 @@ Navigateur ──► Next.js (Vercel) ──► Supabase (Postgres + Auth)
 
 ## Modèle de données
 
+Schéma des specs (`docs/specs`), défini par les migrations `supabase/migrations/20261006170000_posts_sujet.sql` et `20261006180000_specs_v1.sql`, appliquées sur le projet Supabase partagé. En v1, tout utilisateur connecté est admin et voit tous les posts de la page (D27).
+
 | Table | Champs principaux |
 |---|---|
-| `profiles` | `id` (lié à `auth.users`), `nom`, `role` (`auteur` \| `relecteur`) |
-| `editorial_line` | Ligne unique : ton, valeurs, mots à éviter, exemples de posts |
-| `posts` | `author_id`, `type`, `cible` (`perso` \| `entreprise`), `answers` (jsonb), `params` (jsonb), `content`, `status`, `scheduled_at`, `created_at`, `updated_at` |
+| `profiles` | `id` (lié à `auth.users`), `nom`, `role` (`admin` \| `contributor`), `line_id` (ligne de l'admin), `onboarded_at` |
+| `posts` | `author_id`, `type`, `sujet`, `content` (3 000 caractères au plus), `status`, `scheduled_at`, `series_id`, `editorial_line_id`, `origin` (`app` \| `linkedin_import`), `angle`, `validated_at`, `guardrail_report`, `image_path`, `image_alt`, `published_at`, `linkedin_post_urn`, `linkedin_url`, `failure_reason` |
+| `series` | `type`, `subject`, `brief`, `settings` (réglages et calendrier), `line_snapshot`, `charter_snapshot`, `angle_plan` |
+| `editorial_lines` | Lignes `marketing`, `rh`, `neutre` : identité, voix, piliers, `target_per_week`, `defaults`, `reference_posts` |
+| `charter`, `charter_clients` | Charte commune (une ligne) ; clients avec alias et statut `citable` \| `citable_without_detail` \| `not_citable` |
+| `linkedin_connection` | Connexion unique à la page (`mode` `linkedin` \| `demo`, page cible, jeton chiffré non lisible depuis l'API, `expires_at`) |
+| `ideas`, `dismissed_suggestions` | Boîte à idées partagée (D28), suggestions ignorées |
+| `post_transitions` | Transitions de statut autorisées, par acteur (`author` \| `system`) |
+| `editorial_line` | Ancienne ligne unique, encore lue par `/api/generate` ; à supprimer quand plus rien ne la lit |
 
-Statuts d'un post : `brouillon` → `en_relecture` (cible `entreprise` uniquement) → `valide` → `publie`.
+Statuts d'un post (spec Création de post) : `draft`, `scheduled`, `publishing`, `published`, `failed`, `archived` ; `pending` (En relecture) est prévu pour P1, ses transitions sont désactivées.
 
-Règles RLS : un auteur lit et modifie ses propres posts tant qu'ils ne sont pas validés ; un relecteur lit tous les posts et change leur statut.
+Transitions : le trigger `posts_check_update` refuse toute transition absente de `post_transitions`. Un appel depuis l'API (rôle `authenticated`) est une action d'auteur ; les passages `scheduled` → `publishing` → `published` ou `failed` sont faits par les fonctions `cron_claim_due_posts` et `cron_complete_post`, protégées par le secret `cron_secret` du Vault. Le trigger refuse aussi de programmer un texte vide ou une date passée, et toute modification du texte, de la date ou de l'image d'un post En cours, Publié ou Archivé.
+
+Images : bucket public `post-images` (JPEG, PNG, GIF, 5 Mo).
 
 ## Démarrage
 

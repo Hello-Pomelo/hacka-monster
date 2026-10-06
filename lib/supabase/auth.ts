@@ -39,9 +39,9 @@ export async function requireProfile(): Promise<Profile> {
   return profile
 }
 
-// Profil d'un relecteur ; redirige vers /posts si l'utilisateur n'est pas relecteur.
+// Profil d'un admin ; redirige vers /posts sinon. En v1, tout utilisateur connecté est admin.
 export async function requireReviewer(): Promise<Profile> {
   const profile = await requireProfile()
-  if (profile.role !== "relecteur") redirect("/posts")
+  if (profile.role !== "admin") redirect("/posts")
   return profile
 }

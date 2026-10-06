@@ -14,6 +14,97 @@ export type Database = {
   }
   public: {
     Tables: {
+      charter: {
+        Row: {
+          address_form: string
+          banned_expressions: string[]
+          id: number
+          inclusive_writing: boolean
+          sensitive_topics: string[]
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          address_form?: string
+          banned_expressions?: string[]
+          id?: number
+          inclusive_writing?: boolean
+          sensitive_topics?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          address_form?: string
+          banned_expressions?: string[]
+          id?: number
+          inclusive_writing?: boolean
+          sensitive_topics?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charter_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charter_clients: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["client_status"]
+        }
+        Insert: {
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["client_status"]
+        }
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["client_status"]
+        }
+        Relationships: []
+      }
+      dismissed_suggestions: {
+        Row: {
+          dismissed_at: string
+          dismissed_by: string
+          suggestion_key: string
+        }
+        Insert: {
+          dismissed_at?: string
+          dismissed_by?: string
+          suggestion_key: string
+        }
+        Update: {
+          dismissed_at?: string
+          dismissed_by?: string
+          suggestion_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dismissed_suggestions_dismissed_by_fkey"
+            columns: ["dismissed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       editorial_line: {
         Row: {
           exemples: string
@@ -41,50 +132,287 @@ export type Database = {
         }
         Relationships: []
       }
+      editorial_lines: {
+        Row: {
+          about: string
+          brand: string
+          code: string
+          configured: boolean
+          core_values: string[]
+          defaults: Json
+          id: string
+          name: string
+          pillars: string[]
+          reference_posts: string[]
+          target_per_week: number
+          targets: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          voice_adjectives: string[]
+          we_are: string[]
+          we_are_not: string[]
+        }
+        Insert: {
+          about?: string
+          brand?: string
+          code: string
+          configured?: boolean
+          core_values?: string[]
+          defaults?: Json
+          id?: string
+          name: string
+          pillars?: string[]
+          reference_posts?: string[]
+          target_per_week?: number
+          targets?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          voice_adjectives?: string[]
+          we_are?: string[]
+          we_are_not?: string[]
+        }
+        Update: {
+          about?: string
+          brand?: string
+          code?: string
+          configured?: boolean
+          core_values?: string[]
+          defaults?: Json
+          id?: string
+          name?: string
+          pillars?: string[]
+          reference_posts?: string[]
+          target_per_week?: number
+          targets?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          voice_adjectives?: string[]
+          we_are?: string[]
+          we_are_not?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editorial_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ideas: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ideas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      linkedin_connection: {
+        Row: {
+          access_token_encrypted: string | null
+          admin_user_id: string | null
+          connected_at: string
+          expires_at: string | null
+          id: number
+          last_import_at: string | null
+          mode: string
+          scopes: string[]
+          target_logo_url: string | null
+          target_name: string
+          target_urn: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          admin_user_id?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          id?: number
+          last_import_at?: string | null
+          mode?: string
+          scopes?: string[]
+          target_logo_url?: string | null
+          target_name: string
+          target_urn: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          admin_user_id?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          id?: number
+          last_import_at?: string | null
+          mode?: string
+          scopes?: string[]
+          target_logo_url?: string | null
+          target_name?: string
+          target_urn?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linkedin_connection_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_transitions: {
+        Row: {
+          actor: string
+          enabled: boolean
+          from_status: Database["public"]["Enums"]["post_status"]
+          to_status: Database["public"]["Enums"]["post_status"]
+        }
+        Insert: {
+          actor: string
+          enabled?: boolean
+          from_status: Database["public"]["Enums"]["post_status"]
+          to_status: Database["public"]["Enums"]["post_status"]
+        }
+        Update: {
+          actor?: string
+          enabled?: boolean
+          from_status?: Database["public"]["Enums"]["post_status"]
+          to_status?: Database["public"]["Enums"]["post_status"]
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
+          angle: string | null
           answers: Json
           author_id: string
           cible: Database["public"]["Enums"]["post_target"]
           content: string
           created_at: string
+          editorial_line_id: string | null
+          failure_reason: string | null
+          guardrail_report: Json | null
           id: string
+          image_alt: string | null
+          image_path: string | null
+          linkedin_post_urn: string | null
+          linkedin_url: string | null
+          origin: Database["public"]["Enums"]["post_origin"]
           params: Json
+          published_at: string | null
+          publishing_started_at: string | null
           scheduled_at: string | null
+          series_id: string | null
           status: Database["public"]["Enums"]["post_status"]
+          sujet: string
           type: string
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
+          angle?: string | null
           answers?: Json
           author_id?: string
           cible?: Database["public"]["Enums"]["post_target"]
           content?: string
           created_at?: string
+          editorial_line_id?: string | null
+          failure_reason?: string | null
+          guardrail_report?: Json | null
           id?: string
+          image_alt?: string | null
+          image_path?: string | null
+          linkedin_post_urn?: string | null
+          linkedin_url?: string | null
+          origin?: Database["public"]["Enums"]["post_origin"]
           params?: Json
+          published_at?: string | null
+          publishing_started_at?: string | null
           scheduled_at?: string | null
+          series_id?: string | null
           status?: Database["public"]["Enums"]["post_status"]
+          sujet?: string
           type: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
+          angle?: string | null
           answers?: Json
           author_id?: string
           cible?: Database["public"]["Enums"]["post_target"]
           content?: string
           created_at?: string
+          editorial_line_id?: string | null
+          failure_reason?: string | null
+          guardrail_report?: Json | null
           id?: string
+          image_alt?: string | null
+          image_path?: string | null
+          linkedin_post_urn?: string | null
+          linkedin_url?: string | null
+          origin?: Database["public"]["Enums"]["post_origin"]
           params?: Json
+          published_at?: string | null
+          publishing_started_at?: string | null
           scheduled_at?: string | null
+          series_id?: string | null
           status?: Database["public"]["Enums"]["post_status"]
+          sujet?: string
           type?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "posts_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_editorial_line_id_fkey"
+            columns: ["editorial_line_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_validated_by_fkey"
+            columns: ["validated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -95,34 +423,162 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          line_id: string | null
           nom: string
+          onboarded_at: string | null
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
           created_at?: string
           id: string
+          line_id?: string | null
           nom?: string
+          onboarded_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
           created_at?: string
           id?: string
+          line_id?: string | null
           nom?: string
+          onboarded_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series: {
+        Row: {
+          angle_plan: Json | null
+          brief: string
+          charter_snapshot: Json
+          created_at: string
+          created_by: string
+          editorial_line_id: string | null
+          id: string
+          line_snapshot: Json
+          settings: Json
+          subject: string
+          type: string
+        }
+        Insert: {
+          angle_plan?: Json | null
+          brief?: string
+          charter_snapshot?: Json
+          created_at?: string
+          created_by?: string
+          editorial_line_id?: string | null
+          id?: string
+          line_snapshot?: Json
+          settings?: Json
+          subject: string
+          type: string
+        }
+        Update: {
+          angle_plan?: Json | null
+          brief?: string
+          charter_snapshot?: Json
+          created_at?: string
+          created_by?: string
+          editorial_line_id?: string | null
+          id?: string
+          line_snapshot?: Json
+          settings?: Json
+          subject?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_editorial_line_id_fkey"
+            columns: ["editorial_line_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_lines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_reviewer: { Args: never; Returns: boolean }
+      cron_claim_due_posts: {
+        Args: { p_limit?: number; p_secret: string }
+        Returns: {
+          angle: string | null
+          answers: Json
+          author_id: string
+          cible: Database["public"]["Enums"]["post_target"]
+          content: string
+          created_at: string
+          editorial_line_id: string | null
+          failure_reason: string | null
+          guardrail_report: Json | null
+          id: string
+          image_alt: string | null
+          image_path: string | null
+          linkedin_post_urn: string | null
+          linkedin_url: string | null
+          origin: Database["public"]["Enums"]["post_origin"]
+          params: Json
+          published_at: string | null
+          publishing_started_at: string | null
+          scheduled_at: string | null
+          series_id: string | null
+          status: Database["public"]["Enums"]["post_status"]
+          sujet: string
+          type: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      cron_complete_post: {
+        Args: {
+          p_failure_reason?: string
+          p_linkedin_post_urn?: string
+          p_linkedin_url?: string
+          p_post_id: string
+          p_secret: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
+      cron_publication_context: { Args: { p_secret: string }; Returns: Json }
     }
     Enums: {
-      post_status: "brouillon" | "en_relecture" | "valide" | "publie"
+      client_status: "citable" | "citable_without_detail" | "not_citable"
+      post_origin: "app" | "linkedin_import"
+      post_status:
+        | "draft"
+        | "pending"
+        | "scheduled"
+        | "publishing"
+        | "published"
+        | "failed"
+        | "archived"
       post_target: "perso" | "entreprise"
-      user_role: "auteur" | "relecteur"
+      user_role: "admin" | "contributor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -250,9 +706,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      post_status: ["brouillon", "en_relecture", "valide", "publie"],
+      client_status: ["citable", "citable_without_detail", "not_citable"],
+      post_origin: ["app", "linkedin_import"],
+      post_status: [
+        "draft",
+        "pending",
+        "scheduled",
+        "publishing",
+        "published",
+        "failed",
+        "archived",
+      ],
       post_target: ["perso", "entreprise"],
-      user_role: ["auteur", "relecteur"],
+      user_role: ["admin", "contributor"],
     },
   },
 } as const

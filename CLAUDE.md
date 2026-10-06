@@ -118,7 +118,7 @@ Le design est réalisé avec les composants [shadcn/ui](https://ui.shadcn.com). 
 - `service_role` interdite dans le code applicatif.
 - **Schéma modifié uniquement par migration** dans `supabase/migrations/`, par une seule personne désignée. Ne jamais modifier le schéma depuis le Studio sans migration.
 - Après une migration, régénérer les types (`supabase gen types`) et les utiliser : pas de types de table écrits à la main.
-- Noms de tables, colonnes et valeurs de statut : exactement ceux du README (`brouillon`, `en_relecture`, `valide`, `publie`).
+- Noms de tables, colonnes et valeurs de statut : exactement ceux du README (codes des specs : `draft`, `scheduled`, `publishing`, `published`, `failed`, `archived`, `pending` en P1).
 
 ## Code
 
