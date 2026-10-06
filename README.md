@@ -139,6 +139,9 @@ L'application tourne sur http://localhost:3000.
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clé publique Supabase (`sb_publishable_...`) |
 | `OPENROUTER_API_KEY` | Clé API OpenRouter (serveur uniquement) |
 | `OPENROUTER_MODEL` | Identifiant du modèle, par exemple un modèle `:free` |
+| `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | App LinkedIn de la page entreprise (API Community Management), serveur uniquement. Absentes : mode démo, connexion simulée |
+| `LINKEDIN_API_VERSION` | Facultatif : version de l'API LinkedIn, format `AAAAMM` |
+| `LINKEDIN_TOKEN_KEY` | Clé de chiffrement du jeton LinkedIn (AES-256-GCM), 32 octets en base64 (`openssl rand -base64 32`), serveur uniquement |
 | `GOOGLE_CLIENT_ID` | ID client OAuth Google (login + Google Calendar) |
 | `GOOGLE_CLIENT_SECRET` | Secret du client OAuth Google (serveur uniquement) |
 
