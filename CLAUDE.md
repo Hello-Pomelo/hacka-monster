@@ -83,7 +83,7 @@ Le design est réalisé avec les composants [shadcn/ui](https://ui.shadcn.com). 
 |---|---|
 | Parcours en étapes | `Card`, `Button`, `Progress` ou `Tabs` |
 | Choix du type de post | `RadioGroup` ou `ToggleGroup`, `Card` |
-| Questions guidées | `Form`, `Label`, `Textarea`, `Input` |
+| Questions guidées | `Field`, `Label`, `Textarea`, `Input` |
 | Paramètres de rédaction | `Select`, `Slider`, `Switch` |
 | Éditeur et aperçu | `Textarea`, `Card`, `Avatar`, `Separator` |
 | Statuts | `Badge` |
