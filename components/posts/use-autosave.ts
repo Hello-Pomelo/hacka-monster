@@ -30,7 +30,7 @@ export function useAutosave(
   options: AutosaveOptions = {}
 ): {
   schedule: (patch: AutosavePatch) => void
-  // Envoie le changement en attente ; résout à false si le dernier envoi a échoué.
+  // Envoie le changement en attente et attend les envois en cours ; false si l'un d'eux échoue.
   flush: () => Promise<boolean>
   status: AutosaveStatus
 } {
@@ -41,6 +41,7 @@ export function useAutosave(
   const pendingRef = useRef<Pending | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const queueRef = useRef<Promise<boolean>>(Promise.resolve(true))
+  const inFlightRef = useRef(0)
   const callbacksRef = useRef({ onSaved, onError: options.onError })
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export function useAutosave(
   })
 
   const send = useCallback((pending: Pending): Promise<boolean> => {
+    inFlightRef.current += 1
     const run = async (): Promise<boolean> => {
       setState({ postId: pending.postId, status: "saving" })
       let result: Awaited<ReturnType<typeof savePostDraft>>
@@ -55,6 +57,8 @@ export function useAutosave(
         result = await savePostDraft({ postId: pending.postId, ...pending.patch })
       } catch {
         result = { ok: false, error: NETWORK_ERROR }
+      } finally {
+        inFlightRef.current -= 1
       }
       if (result.ok) {
         callbacksRef.current.onSaved(result.data)
@@ -76,7 +80,9 @@ export function useAutosave(
     timerRef.current = null
     const pending = pendingRef.current
     pendingRef.current = null
-    return pending ? send(pending) : queueRef.current
+    if (pending) return send(pending)
+    // Un échec ancien, déjà signalé, ne bloque pas les actions suivantes.
+    return inFlightRef.current > 0 ? queueRef.current : Promise.resolve(true)
   }, [send])
 
   const schedule = useCallback(

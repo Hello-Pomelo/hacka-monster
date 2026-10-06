@@ -207,6 +207,7 @@ function toSeriesSummary(
 
 const SERIES_COLUMNS = "id, subject, brief, type, editorial_line_id"
 
+// null : série introuvable. Lève une erreur si une lecture échoue (écran d'erreur de la route).
 export async function getSeriesFormData(seriesId: string): Promise<{
   series: SeriesSummary
   settings: SeriesSettings
@@ -218,49 +219,47 @@ export async function getSeriesFormData(seriesId: string): Promise<{
 } | null> {
   if (!z.uuid().safeParse(seriesId).success) return null
 
-  try {
-    const supabase = await createClient()
-    const [seriesResult, firstPostResult, lines, profile, charter, connection] = await Promise.all([
-      supabase.from("series").select(`${SERIES_COLUMNS}, settings`).eq("id", seriesId).maybeSingle(),
-      supabase
-        .from("posts")
-        .select("id")
-        .eq("series_id", seriesId)
-        .order("scheduled_at", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true })
-        .limit(1),
-      getLines(),
-      getCurrentProfile(),
-      getCharterRules(),
-      getLinkedInConnection(),
-    ])
-    if (seriesResult.error || firstPostResult.error || !seriesResult.data) return null
+  const supabase = await createClient()
+  const [seriesResult, firstPostResult, lines, profile, charter, connection] = await Promise.all([
+    supabase.from("series").select(`${SERIES_COLUMNS}, settings`).eq("id", seriesId).maybeSingle(),
+    supabase
+      .from("posts")
+      .select("id")
+      .eq("series_id", seriesId)
+      .order("scheduled_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true })
+      .limit(1),
+    getLines(),
+    getCurrentProfile(),
+    getCharterRules(),
+    getLinkedInConnection(),
+  ])
+  if (seriesResult.error || firstPostResult.error) throw new Error("Lecture de la série impossible.")
+  if (!seriesResult.data) return null
 
-    const series = seriesResult.data
-    const type = isPostTypeId(series.type) ? series.type : POST_TYPE_IDS[0]
-    const line = lines.find((option) => option.id === series.editorial_line_id) ?? null
-    const fallback: SeriesSettings = {
-      params: defaultParamsFor(type, line?.defaults ?? null),
-      ...initialSchedule(type, { today: todayInParis() }),
-      answers: {},
-      timeZone: PARIS_TIME_ZONE,
-      source: {},
-    }
+  const series = seriesResult.data
+  const type = isPostTypeId(series.type) ? series.type : POST_TYPE_IDS[0]
+  const line = lines.find((option) => option.id === series.editorial_line_id) ?? null
+  const fallback: SeriesSettings = {
+    params: defaultParamsFor(type, line?.defaults ?? null),
+    ...initialSchedule(type, { today: todayInParis() }),
+    answers: {},
+    timeZone: PARIS_TIME_ZONE,
+    source: {},
+  }
 
-    return {
-      series: toSeriesSummary(series),
-      settings: parseSeriesSettings(series.settings, fallback),
-      firstPostId: firstPostResult.data[0]?.id ?? null,
-      lines,
-      profileLineId: profile?.line_id ?? null,
-      charter,
-      connection,
-    }
-  } catch {
-    return null
+  return {
+    series: toSeriesSummary(series),
+    settings: parseSeriesSettings(series.settings, fallback),
+    firstPostId: firstPostResult.data[0]?.id ?? null,
+    lines,
+    profileLineId: profile?.line_id ?? null,
+    charter,
+    connection,
   }
 }
 
+// null : post introuvable. Lève une erreur si une lecture échoue (écran d'erreur de la route).
 export async function getPostWorkspace(postId: string): Promise<{
   post: EditorPost
   seriesPosts: EditorPost[]
@@ -271,40 +270,37 @@ export async function getPostWorkspace(postId: string): Promise<{
 } | null> {
   if (!z.uuid().safeParse(postId).success) return null
 
-  try {
-    const supabase = await createClient()
-    const [postResult, lines, charter, connection] = await Promise.all([
-      supabase.from("posts").select(EDITOR_POST_COLUMNS).eq("id", postId).maybeSingle(),
-      getLines(),
-      getCharterRules(),
-      getLinkedInConnection(),
+  const supabase = await createClient()
+  const [postResult, lines, charter, connection] = await Promise.all([
+    supabase.from("posts").select(EDITOR_POST_COLUMNS).eq("id", postId).maybeSingle(),
+    getLines(),
+    getCharterRules(),
+    getLinkedInConnection(),
+  ])
+  if (postResult.error) throw new Error("Lecture du post impossible.")
+  const post = postResult.data
+  if (!post) return null
+
+  let series: SeriesSummary | null = null
+  let seriesPosts: EditorPost[] = [post]
+  if (post.series_id) {
+    const [seriesResult, postsResult] = await Promise.all([
+      supabase.from("series").select(SERIES_COLUMNS).eq("id", post.series_id).maybeSingle(),
+      supabase
+        .from("posts")
+        .select(EDITOR_POST_COLUMNS)
+        .eq("series_id", post.series_id)
+        .order("scheduled_at", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true }),
     ])
-    const post = postResult.data
-    if (postResult.error || !post) return null
-
-    let series: SeriesSummary | null = null
-    let seriesPosts: EditorPost[] = [post]
-    if (post.series_id) {
-      const [seriesResult, postsResult] = await Promise.all([
-        supabase.from("series").select(SERIES_COLUMNS).eq("id", post.series_id).maybeSingle(),
-        supabase
-          .from("posts")
-          .select(EDITOR_POST_COLUMNS)
-          .eq("series_id", post.series_id)
-          .order("scheduled_at", { ascending: true, nullsFirst: false })
-          .order("created_at", { ascending: true }),
-      ])
-      if (seriesResult.error || postsResult.error) return null
-      series = seriesResult.data ? toSeriesSummary(seriesResult.data) : null
-      seriesPosts = postsResult.data
-    }
-
-    const lineId = post.editorial_line_id ?? series?.editorialLineId ?? null
-    const line = lines.find((option) => option.id === lineId) ?? null
-    return { post, seriesPosts, series, line, charter, connection }
-  } catch {
-    return null
+    if (seriesResult.error || postsResult.error) throw new Error("Lecture de la série impossible.")
+    series = seriesResult.data ? toSeriesSummary(seriesResult.data) : null
+    seriesPosts = postsResult.data
   }
+
+  const lineId = post.editorial_line_id ?? series?.editorialLineId ?? null
+  const line = lines.find((option) => option.id === lineId) ?? null
+  return { post, seriesPosts, series, line, charter, connection }
 }
 
 // Liste des posts (E6) ----------------------------------------------------------

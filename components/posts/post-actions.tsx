@@ -50,7 +50,7 @@ import type { CharterRules } from "@/lib/guardrails"
 import { isReadOnly, publicImageUrl } from "@/lib/posts"
 import { scheduleBlockers } from "@/lib/scheduling"
 
-// Heure courante arrondie à la minute : les motifs de blocage (date passée) se recalculent seuls.
+// Heure courante arrondie à la minute : le motif « date passée » se met à jour sans action.
 const MINUTE_MS = 60_000
 const subscribeToClock = (onChange: () => void) => {
   const id = setInterval(onChange, MINUTE_MS / 4)
@@ -58,7 +58,63 @@ const subscribeToClock = (onChange: () => void) => {
 }
 const currentMinute = () => Math.floor(Date.now() / MINUTE_MS) * MINUTE_MS
 
+const SECONDARY = { variant: "secondary", size: "sm", className: "w-full" } as const
+
 type ActionKey = "validate" | "schedule" | "unschedule" | "archive" | "restore"
+
+function ArchiveDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Archiver ce post ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Il disparaît de la liste et du calendrier. Rien n&apos;est supprimé sur LinkedIn.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel variant="secondary">Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>Archiver</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+function SeriesNavigation({
+  posts,
+  currentId,
+  onSelect,
+}: {
+  posts: EditorPost[]
+  currentId: string
+  onSelect: (postId: string) => void
+}) {
+  const index = posts.findIndex((item) => item.id === currentId)
+  const previous = index > 0 ? posts[index - 1] : null
+  const next = index >= 0 && index < posts.length - 1 ? posts[index + 1] : null
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <Button variant="secondary" size="sm" disabled={!previous} onClick={() => previous && onSelect(previous.id)}>
+        <ChevronLeft aria-hidden />
+        Précédent
+      </Button>
+      <Button variant="secondary" size="sm" disabled={!next} onClick={() => next && onSelect(next.id)}>
+        Suivant
+        <ChevronRight aria-hidden />
+      </Button>
+    </div>
+  )
+}
 
 type PostActionsProps = {
   // Post courant, avec le texte en cours de saisie.
@@ -74,7 +130,8 @@ type PostActionsProps = {
   onReplaceMany: (posts: EditorPost[]) => void
 }
 
-// Actions du post courant (E3), affichées selon son statut.
+// Actions du post courant (E3), affichées selon son statut. Un post en lecture seule n'a plus
+// d'action d'édition ; l'archivage reste possible pour un post Publié (spec P0 8).
 export function PostActions({
   post,
   seriesPosts,
@@ -94,9 +151,8 @@ export function PostActions({
   const [recapOpen, setRecapOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
 
-  const readOnly = isReadOnly(post)
   const imported = post.origin === "linkedin_import"
-  const schedulable = !readOnly && (post.status === "draft" || post.status === "failed")
+  const schedulable = !isReadOnly(post) && (post.status === "draft" || post.status === "failed")
   const blockers = useMemo(
     () =>
       schedulable && connection
@@ -104,9 +160,6 @@ export function PostActions({
         : [],
     [schedulable, post, charter, connection, nowMs]
   )
-  const index = seriesPosts.findIndex((item) => item.id === post.id)
-  const previous = index > 0 ? seriesPosts[index - 1] : null
-  const next = index >= 0 && index < seriesPosts.length - 1 ? seriesPosts[index + 1] : null
   const hasRecapCandidates = seriesPosts.some((item) => item.status === "draft" || item.status === "failed")
   const disabled = isPending || busy
 
@@ -145,34 +198,28 @@ export function PostActions({
     <Card className="gap-2.5 p-5 ring-0">
       <h2 className="font-heading text-lg">Actions</h2>
 
-      {schedulable &&
-        (connection ? (
-          <div className="grid gap-1.5">
-            <Button
-              className="h-10 w-full px-4"
-              disabled={disabled || blockers.length > 0}
-              onClick={() => run("schedule", () => schedulePost(post.id), "Post programmé")}
-            >
-              {icon("schedule", CalendarClock)}
-              Programmer ce post
-            </Button>
-            {blockers[0] && <p className="text-xs text-subtle-foreground">{blockers[0].message}</p>}
-          </div>
-        ) : (
-          <Button className="h-10 w-full px-4" nativeButton={false} render={<Link href={CONNECTION_SETTINGS_HREF} />}>
-            <CalendarClock aria-hidden />
+      {schedulable && !connection && (
+        <Button className="h-10 w-full px-4" nativeButton={false} render={<Link href={CONNECTION_SETTINGS_HREF} />}>
+          <CalendarClock aria-hidden />
+          Programmer ce post
+        </Button>
+      )}
+      {schedulable && connection && (
+        <div className="grid gap-1.5">
+          <Button
+            className="h-10 w-full px-4"
+            disabled={disabled || blockers.length > 0}
+            onClick={() => run("schedule", () => schedulePost(post.id), "Post programmé")}
+          >
+            {icon("schedule", CalendarClock)}
             Programmer ce post
           </Button>
-        ))}
+          {blockers[0] && <p className="text-xs text-subtle-foreground">{blockers[0].message}</p>}
+        </div>
+      )}
 
       {schedulable && !post.validated_at && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-full"
-          disabled={disabled}
-          onClick={() => run("validate", () => validatePost(post.id), "Post validé")}
-        >
+        <Button {...SECONDARY} disabled={disabled} onClick={() => run("validate", () => validatePost(post.id), "Post validé")}>
           {icon("validate", Check)}
           Valider
         </Button>
@@ -185,7 +232,7 @@ export function PostActions({
       )}
 
       {post.series_id && !imported && hasRecapCandidates && (
-        <Button variant="secondary" size="sm" className="w-full" disabled={disabled} onClick={() => void openRecap()}>
+        <Button {...SECONDARY} disabled={disabled} onClick={() => void openRecap()}>
           <CalendarCheck aria-hidden />
           Programmer les posts validés
         </Button>
@@ -193,9 +240,7 @@ export function PostActions({
 
       {post.status === "scheduled" && !imported && (
         <Button
-          variant="secondary"
-          size="sm"
-          className="w-full"
+          {...SECONDARY}
           disabled={disabled}
           onClick={() => run("unschedule", () => unschedulePost(post.id), "Post déprogrammé")}
         >
@@ -205,31 +250,19 @@ export function PostActions({
       )}
 
       {post.status === "archived" && !imported && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-full"
-          disabled={disabled}
-          onClick={() => run("restore", () => restorePost(post.id), "Post restauré")}
-        >
+        <Button {...SECONDARY} disabled={disabled} onClick={() => run("restore", () => restorePost(post.id), "Post restauré")}>
           {icon("restore", ArchiveRestore)}
           Restaurer
         </Button>
       )}
 
-      <Button variant="secondary" size="sm" className="w-full" onClick={() => setPreviewOpen(true)}>
+      <Button {...SECONDARY} onClick={() => setPreviewOpen(true)}>
         <Eye aria-hidden />
         Aperçu
       </Button>
 
       {!imported && post.status !== "publishing" && post.status !== "archived" && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-full"
-          disabled={disabled}
-          onClick={() => setArchiveOpen(true)}
-        >
+        <Button {...SECONDARY} disabled={disabled} onClick={() => setArchiveOpen(true)}>
           {icon("archive", Archive)}
           Archiver
         </Button>
@@ -238,16 +271,7 @@ export function PostActions({
       {post.series_id && seriesPosts.length > 1 && (
         <>
           <Separator className="my-1" />
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" size="sm" disabled={!previous} onClick={() => previous && onSelect(previous.id)}>
-              <ChevronLeft aria-hidden />
-              Précédent
-            </Button>
-            <Button variant="secondary" size="sm" disabled={!next} onClick={() => next && onSelect(next.id)}>
-              Suivant
-              <ChevronRight aria-hidden />
-            </Button>
-          </div>
+          <SeriesNavigation posts={seriesPosts} currentId={post.id} onSelect={onSelect} />
         </>
       )}
 
@@ -260,7 +284,6 @@ export function PostActions({
         pageName={connection?.targetName ?? "Hello Pomelo"}
         pageLogoUrl={connection?.targetLogoUrl ?? null}
       />
-
       {post.series_id && (
         <ScheduleRecapDialog
           open={recapOpen}
@@ -272,28 +295,14 @@ export function PostActions({
           onScheduled={onReplaceMany}
         />
       )}
-
-      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Archiver ce post ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Il disparaît de la liste et du calendrier. Rien n&apos;est supprimé sur LinkedIn.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel variant="secondary">Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setArchiveOpen(false)
-                run("archive", () => archivePost(post.id), "Post archivé")
-              }}
-            >
-              Archiver
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ArchiveDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        onConfirm={() => {
+          setArchiveOpen(false)
+          run("archive", () => archivePost(post.id), "Post archivé")
+        }}
+      />
     </Card>
   )
 }

@@ -47,6 +47,44 @@ function mergeServerPosts(local: EditorPost[], server: EditorPost[]): EditorPost
   })
 }
 
+function WorkspaceHeader({
+  post,
+  series,
+  line,
+  postCount,
+}: {
+  post: EditorPost
+  series: SeriesSummary | null
+  line: LineOption | null
+  postCount: number
+}) {
+  const TagIcon = post.origin === "linkedin_import" ? Import : post.series_id ? Files : PencilLine
+  const tagLabel =
+    series && post.series_id
+      ? `Série · ${postCount} ${postCount > 1 ? "posts" : "post"}`
+      : seriesLabel(post, series?.subject ?? null)
+  const typeLabel = isPostTypeId(post.type) ? POST_TYPES[post.type].label : null
+  const meta = [line?.name, typeLabel].filter(Boolean).join(" · ")
+
+  return (
+    <header className="grid gap-3">
+      <Link
+        href="/posts"
+        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-link underline-offset-3 hover:underline"
+      >
+        <ArrowLeft aria-hidden className="size-4" />
+        Tous les posts
+      </Link>
+      <span className={TAG_CLASS}>
+        <TagIcon aria-hidden className="size-4" />
+        {tagLabel}
+      </span>
+      <h1 className="font-heading text-[32px]">{series?.subject || postTitle(post, 120)}</h1>
+      {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
+    </header>
+  )
+}
+
 type PostWorkspaceProps = {
   post: EditorPost
   seriesPosts: EditorPost[]
@@ -123,8 +161,9 @@ export function PostWorkspace({
     [postsById, series]
   )
   const generation = usePostGeneration(getContext)
+  // Textes en cours de saisie compris : la file n'écrit jamais un post que l'auteur a commencé.
   const queue = useSeriesGeneration({
-    posts,
+    posts: livePosts,
     autoStart: initialAutoStart,
     generation,
     onPostGenerated: handleGenerated,
@@ -173,32 +212,9 @@ export function PostWorkspace({
     [text, charter, hashtagsWanted]
   )
 
-  const imported = current.origin === "linkedin_import"
-  const TagIcon = imported ? Import : current.series_id ? Files : PencilLine
-  const tagLabel =
-    series && current.series_id
-      ? `Série · ${posts.length} ${posts.length > 1 ? "posts" : "post"}`
-      : seriesLabel(current, series?.subject ?? null)
-  const typeLabel = isPostTypeId(current.type) ? POST_TYPES[current.type].label : null
-  const meta = [line?.name, typeLabel].filter(Boolean).join(" · ")
-
   return (
     <div className="grid min-w-0 gap-6">
-      <header className="grid gap-3">
-        <Link
-          href="/posts"
-          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-link underline-offset-3 hover:underline"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          Tous les posts
-        </Link>
-        <span className={TAG_CLASS}>
-          <TagIcon aria-hidden className="size-4" />
-          {tagLabel}
-        </span>
-        <h1 className="font-heading text-[32px]">{series?.subject || postTitle(current, 120)}</h1>
-        {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
-      </header>
+      <WorkspaceHeader post={current} series={series} line={line} postCount={posts.length} />
 
       {current.series_id && (
         <SeriesTimeline posts={livePosts} currentPostId={current.id} generation={queue} onSelect={selectPost} />

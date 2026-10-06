@@ -1,5 +1,5 @@
 // Contrôle des garde-fous de la charte (spec Paramétrage, section 5), par du code, sans IA.
-// Client non citable et texte trop long : bloquants. Le reste : avertissements.
+// Client non citable : bloquant. Le reste : avertissements.
 // Comparaison sur des mots entiers, sans tenir compte de la casse ni des accents.
 
 import { z } from "zod"
@@ -132,7 +132,7 @@ function postItems(
   const items: GuardrailItem[] = []
 
   if (text.length > MAX_POST_LENGTH) {
-    items.push({ kind: "too_long", severity: "blocking", message: "Le texte dépasse 3 000 caractères." })
+    items.push({ kind: "too_long", severity: "warning", message: "Le texte dépasse 3 000 caractères." })
   }
   for (const expression of charter.bannedExpressions) {
     if (containsTerm(normalizedText, expression)) {

@@ -133,13 +133,18 @@ export async function generateSeriesPosts(input: SeriesFormInput): Promise<Actio
   const planError = firstPlanError(plan)
   if (planError) return failure(planError.message, { field: planError.field })
 
-  const { data: line, error: lineError } = await supabase
+  const { data: lineRows, error: lineError } = await supabase
     .from("editorial_lines")
     .select(LINE_SNAPSHOT_COLUMNS)
-    .eq("id", lineId)
-    .maybeSingle()
+    .or(`id.eq.${lineId},code.eq.neutre`)
   if (lineError) return failure("La ligne éditoriale n'a pas pu être lue. Réessayez.")
-  if (!line) return failure("Ligne éditoriale introuvable.", { field: "lineId" })
+  const chosenLine = lineRows.find((row) => row.id === lineId)
+  if (!chosenLine) return failure("Ligne éditoriale introuvable.", { field: "lineId" })
+  // Ligne pas encore configurée : la série s'écrit avec la ligne Neutre (spec Paramétrage, D13).
+  // La série reste rattachée à la ligne choisie, qui sert au filtre par ligne.
+  const frozenLine = chosenLine.configured
+    ? chosenLine
+    : (lineRows.find((row) => row.code === "neutre") ?? chosenLine)
 
   const previous = parseSeriesSettings(seriesResult.data.settings, {
     params,
@@ -166,7 +171,7 @@ export async function generateSeriesPosts(input: SeriesFormInput): Promise<Actio
       brief,
       editorial_line_id: lineId,
       settings,
-      line_snapshot: line,
+      line_snapshot: frozenLine,
       charter_snapshot: charter.snapshot,
     })
     .eq("id", seriesId)

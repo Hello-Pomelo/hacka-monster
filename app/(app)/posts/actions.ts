@@ -185,14 +185,20 @@ export async function savePostDraft(input: {
   return { ok: true, data }
 }
 
+const generatedContentSchema = z.object({
+  postId: z.uuid(NOT_FOUND_MESSAGE),
+  content: z
+    .string()
+    .trim()
+    .min(1, "Le modèle n'a renvoyé aucun texte. Réessayez.")
+    .max(MAX_POST_LENGTH, "Le texte généré dépasse 3 000 caractères : demandez une nouvelle variante."),
+})
+
 // Texte rendu par la génération : il remplace le texte et retire la validation (E3).
 export async function saveGeneratedContent(postId: string, content: string): Promise<ActionResult<EditorPost>> {
-  if (!postIdSchema.safeParse(postId).success) return failure(NOT_FOUND_MESSAGE)
-  const text = content.trim()
-  if (!text) return failure("Le modèle n'a renvoyé aucun texte. Réessayez.")
-  if (text.length > MAX_POST_LENGTH) {
-    return failure("Le texte généré dépasse 3 000 caractères : demandez une nouvelle variante.")
-  }
+  const parsed = generatedContentSchema.safeParse({ postId, content })
+  if (!parsed.success) return zodFailure(parsed.error)
+  const text = parsed.data.content
 
   const session = await getActionSession()
   if (!session) return failure(SIGNED_OUT_MESSAGE)
