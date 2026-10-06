@@ -29,6 +29,7 @@ import {
   type ActionFailure,
 } from "@/lib/creation-data"
 import { checkGuardrails, type CharterRules, type GuardrailReport } from "@/lib/guardrails"
+import { publishDuePosts } from "@/lib/linkedin/publish-due"
 import {
   MAX_POST_LENGTH,
   POST_IMAGES_BUCKET,
@@ -456,6 +457,83 @@ export async function unschedulePost(postId: string): Promise<ActionResult<Edito
 
   revalidatePost(postId)
   return { ok: true, data }
+}
+
+const PUBLISH_NOW_DELAY_MS = 2_000
+const PUBLISH_NOW_ATTEMPTS = 3
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// « Publier maintenant » : programme le post dans 2 secondes puis lance la publication à date,
+// sans attendre le cron. Le post suit les transitions habituelles (Programmé, En cours, Publié ou
+// Échec). Le post renvoyé porte le résultat : statut Publié, ou Échec avec son motif.
+export async function publishPostNow(postId: string): Promise<ActionResult<EditorPost>> {
+  if (!postIdSchema.safeParse(postId).success) return failure(NOT_FOUND_MESSAGE)
+  const session = await getActionSession()
+  if (!session) return failure(SIGNED_OUT_MESSAGE)
+  const { supabase, userId } = session
+
+  const secret = process.env.CRON_SECRET
+  if (!secret) return failure("Publication immédiate indisponible : CRON_SECRET n'est pas configuré.")
+
+  const publishable: PostStatus[] = [...EDITABLE_STATUSES, "scheduled"]
+  const { data: post, error: readError } = await supabase
+    .from("posts")
+    .select(EDITOR_POST_COLUMNS)
+    .eq("id", postId)
+    .maybeSingle()
+  if (readError) return failure(toPostError(readError))
+  if (!post) return failure(NOT_FOUND_MESSAGE)
+  if (post.origin !== "app" || !publishable.includes(post.status)) {
+    return failure("Cette action n'est pas possible pour un post à ce statut.")
+  }
+
+  const context = await readSchedulingContext()
+  if (!context.ok) return context
+  const { charter, connection } = context
+
+  const scheduledAt = new Date(Date.now() + PUBLISH_NOW_DELAY_MS).toISOString()
+  const [blocker] = scheduleBlockers(
+    { ...post, scheduled_at: scheduledAt },
+    { charter, connection, now: new Date(), requireValidated: false }
+  )
+  if (blocker) {
+    return failure(blocker.message, blocker.reason === "not_connected" ? { code: "not_connected" } : {})
+  }
+
+  const report = checkGuardrails(post.content, charter, { hashtagsWanted: parsePostParams(post.params).hashtags })
+  const { error: scheduleError } = await supabase
+    .from("posts")
+    .update({
+      status: "scheduled",
+      scheduled_at: scheduledAt,
+      guardrail_report: report,
+      ...(post.validated_at ? {} : { validated_at: new Date().toISOString(), validated_by: userId }),
+    })
+    .eq("id", postId)
+    .in("status", publishable)
+  if (scheduleError) return failure(toPostError(scheduleError))
+
+  await sleep(PUBLISH_NOW_DELAY_MS + 500)
+
+  // L'horloge de la base peut différer de quelques centaines de millisecondes : nouvel essai
+  // tant que le post n'a pas été pris.
+  let current: EditorPost | null = null
+  for (let attempt = 0; attempt < PUBLISH_NOW_ATTEMPTS; attempt++) {
+    const result = await publishDuePosts(secret)
+    if (!result.ok) return failure(result.error)
+    if (result.skipped) return failure(CREATION_TEXTS.linkedinMissing, { code: "not_connected" })
+
+    const { data, error } = await supabase.from("posts").select(EDITOR_POST_COLUMNS).eq("id", postId).maybeSingle()
+    if (error) return failure(toPostError(error))
+    if (!data) return failure(NOT_FOUND_MESSAGE)
+    current = data
+    if (data.status !== "scheduled") break
+    await sleep(1_000)
+  }
+
+  revalidatePost(postId)
+  if (!current) return failure(NOT_FOUND_MESSAGE)
+  return { ok: true, data: current }
 }
 
 // « Archiver » : possible depuis tous les statuts sauf En cours. Rien n'est supprimé sur LinkedIn.

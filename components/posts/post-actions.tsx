@@ -2,11 +2,12 @@
 
 import { useState, useTransition, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { Archive, ArchiveRestore, CalendarCheck, CalendarX, Check, Eye, type LucideIcon } from "lucide-react"
+import { Archive, ArchiveRestore, CalendarCheck, CalendarX, Check, Eye, Send, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   archivePost,
+  publishPostNow,
   restorePost,
   schedulePost,
   unschedulePost,
@@ -14,6 +15,7 @@ import {
 } from "@/app/(app)/posts/actions"
 import { ArchivePostDialog } from "@/components/posts/archive-post-dialog"
 import { LinkedInPreviewDialog } from "@/components/posts/linkedin-preview-dialog"
+import { PublishNowDialog } from "@/components/posts/publish-now-dialog"
 import { SchedulePostButton } from "@/components/posts/schedule-post-button"
 import { ScheduleRecapDialog } from "@/components/posts/schedule-recap-dialog"
 import { SeriesNavigation } from "@/components/posts/series-navigation"
@@ -32,7 +34,7 @@ import { isReadOnly, publicImageUrl } from "@/lib/posts"
 
 const SECONDARY = { variant: "secondary", size: "sm", className: "w-full" } as const
 
-type ActionKey = "validate" | "schedule" | "unschedule" | "archive" | "restore"
+type ActionKey = "publish" | "validate" | "schedule" | "unschedule" | "archive" | "restore"
 
 type PostActionsProps = {
   // Post courant, avec le texte en cours de saisie.
@@ -67,11 +69,14 @@ export function PostActions({
   const [previewOpen, setPreviewOpen] = useState(false)
   const [recapOpen, setRecapOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [publishOpen, setPublishOpen] = useState(false)
 
   const imported = post.origin === "linkedin_import"
   const schedulable = !isReadOnly(post) && (post.status === "draft" || post.status === "failed")
   const hasRecapCandidates = seriesPosts.some((item) => item.status === "draft" || item.status === "failed")
   const disabled = isPending || busy
+  const publishable =
+    !imported && !isReadOnly(post) && ["draft", "failed", "scheduled"].includes(post.status) && Boolean(connection)
 
   function run(key: ActionKey, action: () => Promise<ActionResult<EditorPost>>, success: string) {
     setActiveAction(key)
@@ -89,6 +94,30 @@ export function PostActions({
         }
       } catch {
         toast.error("L'action a échoué. Réessayez.")
+      } finally {
+        setActiveAction(null)
+      }
+    })
+  }
+
+  // Le résultat arrive dans le post : Publié, ou Échec avec son motif.
+  function publishNow() {
+    setActiveAction("publish")
+    startTransition(async () => {
+      try {
+        if (!(await flush())) return
+        const result = await publishPostNow(post.id)
+        if (!result.ok) {
+          toast.error(result.error)
+          if (result.code === "not_connected") router.push(CONNECTION_SETTINGS_HREF)
+          return
+        }
+        onReplace(result.data)
+        if (result.data.status === "published") toast.success("Post publié sur LinkedIn")
+        else if (result.data.status === "failed") toast.error(result.data.failure_reason ?? "La publication a échoué.")
+        else toast.info("Publication en cours : rechargez la page dans quelques instants.")
+      } catch {
+        toast.error("La publication a échoué. Réessayez.")
       } finally {
         setActiveAction(null)
       }
@@ -136,6 +165,13 @@ export function PostActions({
         <Button {...SECONDARY} disabled={disabled} onClick={() => void openRecap()}>
           <CalendarCheck aria-hidden />
           Programmer les posts validés
+        </Button>
+      )}
+
+      {publishable && (
+        <Button {...SECONDARY} disabled={disabled || !post.content.trim()} onClick={() => setPublishOpen(true)}>
+          {icon("publish", Send)}
+          {isPending && activeAction === "publish" ? "Publication…" : "Publier maintenant"}
         </Button>
       )}
 
@@ -196,6 +232,15 @@ export function PostActions({
           onScheduled={onReplaceMany}
         />
       )}
+      <PublishNowDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        pageName={connection?.targetName ?? "LinkedIn"}
+        onConfirm={() => {
+          setPublishOpen(false)
+          publishNow()
+        }}
+      />
       <ArchivePostDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
