@@ -142,6 +142,7 @@ L'application tourne sur http://localhost:3000.
 | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | App LinkedIn de la page entreprise (API Community Management), serveur uniquement. Absentes : mode démo, connexion simulée |
 | `LINKEDIN_API_VERSION` | Facultatif : version de l'API LinkedIn, format `AAAAMM` |
 | `LINKEDIN_TOKEN_KEY` | Clé de chiffrement du jeton LinkedIn (AES-256-GCM), 32 octets en base64 (`openssl rand -base64 32`), serveur uniquement |
+| `CRON_SECRET` | Secret de la publication à date, égal au secret `cron_secret` du Vault Supabase ; envoyé par pg_cron à `/api/cron/publish` (serveur uniquement) |
 | `GOOGLE_CLIENT_ID` | ID client OAuth Google (login + Google Calendar) |
 | `GOOGLE_CLIENT_SECRET` | Secret du client OAuth Google (serveur uniquement) |
 
