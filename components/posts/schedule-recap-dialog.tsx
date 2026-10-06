@@ -27,6 +27,7 @@ import { Spinner } from "@/components/ui/spinner"
 import {
   CONNECTION_SETTINGS_HREF,
   CREATION_TEXTS,
+  callAction,
   scheduledToast,
   type EditorPost,
   type LinkedInConnectionSummary,
@@ -113,7 +114,7 @@ function ScheduleRecapBody({
   function confirm() {
     const shown = liveRecap
     startTransition(async () => {
-      const result = await scheduleValidatedPosts(seriesId)
+      const result = await callAction(() => scheduleValidatedPosts(seriesId))
       if (!result.ok) {
         toast.error(result.error)
         if (result.code === "not_connected") setNotConnected(true)

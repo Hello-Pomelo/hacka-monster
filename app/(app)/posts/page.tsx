@@ -1,12 +1,12 @@
 import { Suspense } from "react"
-import { CircleAlert, Files, Plus } from "lucide-react"
+import { Files, Plus } from "lucide-react"
 import type { Metadata } from "next"
 
 import { FailedPostsBanner } from "@/components/posts/failed-posts-banner"
 import { NewPostButton } from "@/components/posts/new-post-button"
+import { PageFallback } from "@/components/posts/page-fallback"
 import { PostsFilters } from "@/components/posts/posts-filters"
 import { PostsTable } from "@/components/posts/posts-table"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { listPosts } from "@/lib/creation-data"
 import { hasListFilters, parsePostListSearch } from "@/lib/post-list"
@@ -15,20 +15,6 @@ export const metadata: Metadata = { title: "Tous les posts" }
 
 type PostsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
-}
-
-function LoadError() {
-  return (
-    <Empty className="rounded-xl bg-card">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <CircleAlert aria-hidden className="text-destructive" />
-        </EmptyMedia>
-        <EmptyTitle>Impossible de charger les posts</EmptyTitle>
-        <EmptyDescription>Rechargez la page dans quelques instants.</EmptyDescription>
-      </EmptyHeader>
-    </Empty>
-  )
 }
 
 // E6 « Tous les posts » : tous les posts de la page, quel que soit l'admin (D27).
@@ -54,7 +40,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       </header>
 
       {data === null ? (
-        <LoadError />
+        <PageFallback
+          title="Impossible de charger les posts"
+          description="Rechargez la page dans quelques instants."
+        />
       ) : (
         <>
           {data.failedCount > 0 && <FailedPostsBanner count={data.failedCount} filters={filters} />}

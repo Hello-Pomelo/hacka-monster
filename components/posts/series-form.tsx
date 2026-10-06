@@ -15,7 +15,13 @@ import { SeriesSubjectSection } from "@/components/posts/series-subject-section"
 import { useSlotPrefill } from "@/components/posts/use-slot-prefill"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { resolveDefaultLine, type LineOption, type SeriesFormInput, type SeriesSummary } from "@/lib/creation"
+import {
+  callAction,
+  resolveDefaultLine,
+  type LineOption,
+  type SeriesFormInput,
+  type SeriesSummary,
+} from "@/lib/creation"
 import { checkGuardrails, firstBlockingMessage, type CharterRules } from "@/lib/guardrails"
 import { POST_TYPE_IDS, POST_TYPES, isPostTypeId, type PostParams, type PostTypeId } from "@/lib/post-types"
 import {
@@ -147,7 +153,7 @@ export function SeriesForm({ series, settings, lines, profileLineId, charter, to
     setServerError(null)
 
     startTransition(async () => {
-      const result = await generateSeriesPosts(input)
+      const result = await callAction(() => generateSeriesPosts(input))
       if (!result.ok) {
         toast.error(result.error)
         setServerError({ field: result.field ?? null, message: result.error })

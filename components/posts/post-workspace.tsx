@@ -6,31 +6,21 @@
 // qui revalide rend l'URL courante, et un autre `[id]` remonterait l'écran et sa file de génération.
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Files, Import, PencilLine } from "lucide-react"
 
 import { GuardrailChecklist } from "@/components/posts/guardrail-checklist"
 import { PostActions } from "@/components/posts/post-actions"
 import { PostEditorCard } from "@/components/posts/post-editor-card"
 import { PostStatusPanel } from "@/components/posts/post-status-panel"
+import { PostWorkspaceHeader } from "@/components/posts/post-workspace-header"
 import { SeriesTimeline } from "@/components/posts/series-timeline"
 import { useAutosave, type AutosavePatch } from "@/components/posts/use-autosave"
 import { usePostGeneration } from "@/components/posts/use-post-generation"
 import { useSeriesGeneration } from "@/components/posts/use-series-generation"
-import {
-  seriesLabel,
-  type EditorPost,
-  type LineOption,
-  type LinkedInConnectionSummary,
-  type SeriesSummary,
-} from "@/lib/creation"
+import type { EditorPost, LineOption, LinkedInConnectionSummary, SeriesSummary } from "@/lib/creation"
 import { checkGuardrails, type CharterRules } from "@/lib/guardrails"
-import { POST_TYPES, isPostTypeId } from "@/lib/post-types"
-import { isReadOnly, parsePostParams, postTitle } from "@/lib/posts"
+import { isReadOnly, parsePostParams } from "@/lib/posts"
 
 const POST_PARAM = "post"
-const TAG_CLASS =
-  "inline-flex w-fit items-center gap-1.5 rounded-full border border-tag-border bg-tag px-2.5 py-1 text-xs font-medium tracking-[0.06em] text-tag-foreground uppercase"
 
 function postUrl(routePostId: string, postId: string): string {
   return postId === routePostId ? `/posts/${routePostId}` : `/posts/${routePostId}?${POST_PARAM}=${postId}`
@@ -45,44 +35,6 @@ function mergeServerPosts(local: EditorPost[], server: EditorPost[]): EditorPost
     const current = localById.get(post.id)
     return current && isNewer(current, post) ? current : post
   })
-}
-
-function WorkspaceHeader({
-  post,
-  series,
-  line,
-  postCount,
-}: {
-  post: EditorPost
-  series: SeriesSummary | null
-  line: LineOption | null
-  postCount: number
-}) {
-  const TagIcon = post.origin === "linkedin_import" ? Import : post.series_id ? Files : PencilLine
-  const tagLabel =
-    series && post.series_id
-      ? `Série · ${postCount} ${postCount > 1 ? "posts" : "post"}`
-      : seriesLabel(post, series?.subject ?? null)
-  const typeLabel = isPostTypeId(post.type) ? POST_TYPES[post.type].label : null
-  const meta = [line?.name, typeLabel].filter(Boolean).join(" · ")
-
-  return (
-    <header className="grid gap-3">
-      <Link
-        href="/posts"
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-link underline-offset-3 hover:underline"
-      >
-        <ArrowLeft aria-hidden className="size-4" />
-        Tous les posts
-      </Link>
-      <span className={TAG_CLASS}>
-        <TagIcon aria-hidden className="size-4" />
-        {tagLabel}
-      </span>
-      <h1 className="font-heading text-[32px]">{series?.subject || postTitle(post, 120)}</h1>
-      {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
-    </header>
-  )
 }
 
 type PostWorkspaceProps = {
@@ -214,7 +166,7 @@ export function PostWorkspace({
 
   return (
     <div className="grid min-w-0 gap-6">
-      <WorkspaceHeader post={current} series={series} line={line} postCount={posts.length} />
+      <PostWorkspaceHeader post={current} series={series} line={line} postCount={posts.length} />
 
       {current.series_id && (
         <SeriesTimeline posts={livePosts} currentPostId={current.id} generation={queue} onSelect={selectPost} />

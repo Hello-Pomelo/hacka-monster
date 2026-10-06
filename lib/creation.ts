@@ -19,6 +19,18 @@ export type ActionResult<T = null> =
   | { ok: true; data: T }
   | { ok: false; error: string; field?: string; code?: "not_connected" }
 
+export const ACTION_UNREACHABLE_MESSAGE = "Le serveur ne répond pas. Vérifiez votre connexion, puis réessayez."
+
+// Appel d'une Server Action depuis le navigateur : une requête qui n'aboutit pas devient un échec
+// affiché en toast, au lieu d'une erreur levée dans la transition.
+export async function callAction<T>(action: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
+  try {
+    return await action()
+  } catch {
+    return { ok: false, error: ACTION_UNREACHABLE_MESSAGE }
+  }
+}
+
 // Colonnes d'un post lues par l'éditeur (E3) et renvoyées par les Server Actions.
 export const EDITOR_POST_COLUMNS =
   "id, type, sujet, content, status, origin, scheduled_at, validated_at, image_path, image_alt, failure_reason, linkedin_url, published_at, series_id, editorial_line_id, answers, params, angle, guardrail_report, updated_at" as const

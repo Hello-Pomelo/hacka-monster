@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldError, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import type { ActionResult, EditorPost } from "@/lib/creation"
+import { callAction, type ActionResult, type EditorPost } from "@/lib/creation"
 import { MAX_POST_IMAGE_BYTES, POST_IMAGES_BUCKET, POST_IMAGE_TYPES, publicImageUrl } from "@/lib/posts"
 import { createClient } from "@/lib/supabase/client"
 
@@ -112,7 +112,7 @@ export function PostImageField({ post, readOnly, onChange }: PostImageFieldProps
 
   function handleRemove() {
     startRemoving(async () => {
-      if (applyResult(await removePostImage(post.id))) setAltDraft(null)
+      if (applyResult(await callAction(() => removePostImage(post.id)))) setAltDraft(null)
     })
   }
 
@@ -121,7 +121,7 @@ export function PostImageField({ post, readOnly, onChange }: PostImageFieldProps
     if (value === savedAlt) return
     const postId = post.id
     startSavingAlt(async () => {
-      applyResult(await savePostDraft({ postId, imageAlt: value }))
+      applyResult(await callAction(() => savePostDraft({ postId, imageAlt: value })))
     })
   }
 

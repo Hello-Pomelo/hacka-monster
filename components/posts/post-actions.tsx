@@ -1,20 +1,8 @@
 "use client"
 
-import { useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react"
-import Link from "next/link"
+import { useState, useTransition, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import {
-  Archive,
-  ArchiveRestore,
-  CalendarCheck,
-  CalendarClock,
-  CalendarX,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  type LucideIcon,
-} from "lucide-react"
+import { Archive, ArchiveRestore, CalendarCheck, CalendarX, Check, Eye, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -24,18 +12,11 @@ import {
   unschedulePost,
   validatePost,
 } from "@/app/(app)/posts/actions"
+import { ArchivePostDialog } from "@/components/posts/archive-post-dialog"
 import { LinkedInPreviewDialog } from "@/components/posts/linkedin-preview-dialog"
+import { SchedulePostButton } from "@/components/posts/schedule-post-button"
 import { ScheduleRecapDialog } from "@/components/posts/schedule-recap-dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { SeriesNavigation } from "@/components/posts/series-navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -48,73 +29,10 @@ import {
 } from "@/lib/creation"
 import type { CharterRules } from "@/lib/guardrails"
 import { isReadOnly, publicImageUrl } from "@/lib/posts"
-import { scheduleBlockers } from "@/lib/scheduling"
-
-// Heure courante arrondie à la minute : le motif « date passée » se met à jour sans action.
-const MINUTE_MS = 60_000
-const subscribeToClock = (onChange: () => void) => {
-  const id = setInterval(onChange, MINUTE_MS / 4)
-  return () => clearInterval(id)
-}
-const currentMinute = () => Math.floor(Date.now() / MINUTE_MS) * MINUTE_MS
 
 const SECONDARY = { variant: "secondary", size: "sm", className: "w-full" } as const
 
 type ActionKey = "validate" | "schedule" | "unschedule" | "archive" | "restore"
-
-function ArchiveDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
-}) {
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Archiver ce post ?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Il disparaît de la liste et du calendrier. Rien n&apos;est supprimé sur LinkedIn.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel variant="secondary">Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Archiver</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
-}
-
-function SeriesNavigation({
-  posts,
-  currentId,
-  onSelect,
-}: {
-  posts: EditorPost[]
-  currentId: string
-  onSelect: (postId: string) => void
-}) {
-  const index = posts.findIndex((item) => item.id === currentId)
-  const previous = index > 0 ? posts[index - 1] : null
-  const next = index >= 0 && index < posts.length - 1 ? posts[index + 1] : null
-
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <Button variant="secondary" size="sm" disabled={!previous} onClick={() => previous && onSelect(previous.id)}>
-        <ChevronLeft aria-hidden />
-        Précédent
-      </Button>
-      <Button variant="secondary" size="sm" disabled={!next} onClick={() => next && onSelect(next.id)}>
-        Suivant
-        <ChevronRight aria-hidden />
-      </Button>
-    </div>
-  )
-}
 
 type PostActionsProps = {
   // Post courant, avec le texte en cours de saisie.
@@ -144,7 +62,6 @@ export function PostActions({
   onReplaceMany,
 }: PostActionsProps) {
   const router = useRouter()
-  const nowMs = useSyncExternalStore(subscribeToClock, currentMinute, currentMinute)
   const [isPending, startTransition] = useTransition()
   const [activeAction, setActiveAction] = useState<ActionKey | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -153,13 +70,6 @@ export function PostActions({
 
   const imported = post.origin === "linkedin_import"
   const schedulable = !isReadOnly(post) && (post.status === "draft" || post.status === "failed")
-  const blockers = useMemo(
-    () =>
-      schedulable && connection
-        ? scheduleBlockers(post, { charter, connection, now: new Date(nowMs), requireValidated: false })
-        : [],
-    [schedulable, post, charter, connection, nowMs]
-  )
   const hasRecapCandidates = seriesPosts.some((item) => item.status === "draft" || item.status === "failed")
   const disabled = isPending || busy
 
@@ -189,33 +99,24 @@ export function PostActions({
     return isPending && activeAction === key ? <Spinner aria-hidden /> : <Icon aria-hidden />
   }
 
+  // Les textes en attente partent d'abord : le récapitulatif porte sur la dernière version.
   async function openRecap() {
-    await flush()
-    setRecapOpen(true)
+    if (await flush()) setRecapOpen(true)
   }
 
   return (
     <Card className="gap-2.5 p-5 ring-0">
       <h2 className="font-heading text-lg">Actions</h2>
 
-      {schedulable && !connection && (
-        <Button className="h-10 w-full px-4" nativeButton={false} render={<Link href={CONNECTION_SETTINGS_HREF} />}>
-          <CalendarClock aria-hidden />
-          Programmer ce post
-        </Button>
-      )}
-      {schedulable && connection && (
-        <div className="grid gap-1.5">
-          <Button
-            className="h-10 w-full px-4"
-            disabled={disabled || blockers.length > 0}
-            onClick={() => run("schedule", () => schedulePost(post.id), "Post programmé")}
-          >
-            {icon("schedule", CalendarClock)}
-            Programmer ce post
-          </Button>
-          {blockers[0] && <p className="text-xs text-subtle-foreground">{blockers[0].message}</p>}
-        </div>
+      {schedulable && (
+        <SchedulePostButton
+          post={post}
+          charter={charter}
+          connection={connection}
+          disabled={disabled}
+          pending={isPending && activeAction === "schedule"}
+          onSchedule={() => run("schedule", () => schedulePost(post.id), "Post programmé")}
+        />
       )}
 
       {schedulable && !post.validated_at && (
@@ -295,7 +196,7 @@ export function PostActions({
           onScheduled={onReplaceMany}
         />
       )}
-      <ArchiveDialog
+      <ArchivePostDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
         onConfirm={() => {

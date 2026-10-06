@@ -1,9 +1,9 @@
-import { CircleAlert, Sparkles } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import type { Metadata } from "next"
 
 import { LineNotConfiguredBanner, LinkedInMissingBanner } from "@/components/posts/creation-banners"
 import { NewPostForm } from "@/components/posts/new-post-form"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { PageFallback } from "@/components/posts/page-fallback"
 import { isLineConfigured, newPostSearchSchema, resolveDefaultLine, type NewPostSearch } from "@/lib/creation"
 import { getNewPostContext } from "@/lib/creation-data"
 
@@ -22,8 +22,7 @@ function NewPostHeader() {
       </span>
       <h1 className="font-heading text-[32px]">Paramétrer votre post</h1>
       <p className="text-muted-foreground">
-        L&apos;assistant rédige ensuite un premier jet dans le ton de votre ligne éditoriale. Vous le
-        relisez avant toute publication.
+        Choisissez qui rédige, le type de post et son sujet. Aucun post ne part sans votre validation.
       </p>
     </header>
   )
@@ -40,15 +39,11 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
     return (
       <>
         <NewPostHeader />
-        <Empty className="max-w-[760px] rounded-xl bg-card">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <CircleAlert className="text-destructive" />
-            </EmptyMedia>
-            <EmptyTitle>Impossible de préparer le nouveau post</EmptyTitle>
-            <EmptyDescription>Rechargez la page dans quelques instants.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <PageFallback
+          className="max-w-[760px]"
+          title="Impossible de préparer le nouveau post"
+          description="Rechargez la page dans quelques instants."
+        />
       </>
     )
   }

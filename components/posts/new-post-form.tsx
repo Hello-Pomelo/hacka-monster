@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
-import type { NewPostInput, NewPostSearch } from "@/lib/creation"
+import { callAction, type NewPostInput, type NewPostSearch } from "@/lib/creation"
 import { POST_TYPES, type PostTypeId } from "@/lib/post-types"
 
 const SUBJECT_REQUIRED = "Décrivez le sujet du post."
@@ -82,11 +82,11 @@ export function NewPostForm({ prefill, defaultLineId }: NewPostFormProps) {
 
     startTransition(async () => {
       if (isAi) {
-        const result = await createSeries(input)
+        const result = await callAction(() => createSeries(input))
         if (result.ok) router.push(`/series/${result.data.seriesId}`)
         else showError(result)
       } else {
-        const result = await createManualPost(input)
+        const result = await callAction(() => createManualPost(input))
         if (result.ok) router.push(`/posts/${result.data.postId}`)
         else showError(result)
       }
